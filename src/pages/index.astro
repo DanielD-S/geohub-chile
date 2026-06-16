@@ -8,6 +8,7 @@ import IniciativaCard from '../components/IniciativaCard.astro';
 import FuenteTile from '../components/FuenteTile.astro';
 import ContribuirSteps from '../components/ContribuirSteps.astro';
 import AcercaCards from '../components/AcercaCards.astro';
+import ApoyarSection from '../components/ApoyarSection.astro';
 import ContribuirModal from '../components/ContribuirModal.astro';
 import Footer from '../components/Footer.astro';
 
@@ -80,6 +81,14 @@ const fuentes = (await getCollection('fuentes')).sort(
     <div id="contribuir" style="padding-top:2rem">
       <div class="sec-title">Cómo añadir tu iniciativa</div>
       <ContribuirSteps />
+    </div>
+
+    <div id="apoyar" style="padding-top:2rem">
+      <div class="sec-title">
+        Apoyar el proyecto
+        <span class="sec-sub">donaciones vía Mercado Pago Chile · sin registrarte</span>
+      </div>
+      <ApoyarSection />
     </div>
 
     <div id="acerca" style="padding-top:2rem">

@@ -16,6 +16,7 @@ const { repoUrl = 'https://github.com/DanielD-S/Capas_IDE_CHILE' } = Astro.props
       <a class="hnav-link" href="#oficiales">Oficiales</a>
       <a class="hnav-link" href="#fuentes">Fuentes</a>
       <a class="hnav-link" href="#contribuir">Contribuir</a>
+      <a class="hnav-link" href="#apoyar">Apoyar</a>
       <a class="hnav-link" href="#acerca">Acerca</a>
     </nav>
     <div class="header-right">
@@ -28,7 +29,7 @@ const { repoUrl = 'https://github.com/DanielD-S/Capas_IDE_CHILE' } = Astro.props
 <script is:inline>
   // Scroll-spy para nav activo
   (() => {
-    const secciones = ['iniciativas', 'oficiales', 'fuentes', 'contribuir', 'acerca'];
+    const secciones = ['iniciativas', 'oficiales', 'fuentes', 'contribuir', 'apoyar', 'acerca'];
     const navLinks = document.querySelectorAll('.hnav-link');
     window.addEventListener(
       'scroll',
