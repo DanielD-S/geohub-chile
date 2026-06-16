@@ -1,0 +1,7 @@
+{
+  "logo": "Open-Meteo",
+  "nombre": "Clima en tiempo real",
+  "descripcion": "API gratuita: forecast, historial ERA5, sin API key.",
+  "url": "https://open-meteo.com",
+  "orden": 80
+}

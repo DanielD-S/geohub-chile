@@ -1,0 +1,48 @@
+---
+interface Props {
+  repoUrl?: string;
+}
+const { repoUrl = 'https://github.com/DanielD-S/Capas_IDE_CHILE' } = Astro.props;
+---
+
+<header>
+  <div class="header-inner">
+    <a href="#" class="logo">
+      <div class="logo-mark">G</div>
+      <div class="logo-text">Geo<span>Hub</span>CL</div>
+    </a>
+    <nav class="header-nav">
+      <a class="hnav-link active" href="#iniciativas">Comunidad</a>
+      <a class="hnav-link" href="#oficiales">Oficiales</a>
+      <a class="hnav-link" href="#fuentes">Fuentes</a>
+      <a class="hnav-link" href="#contribuir">Contribuir</a>
+      <a class="hnav-link" href="#acerca">Acerca</a>
+    </nav>
+    <div class="header-right">
+      <a class="btn-gh" href={repoUrl} target="_blank" rel="noopener">⬡ GitHub</a>
+      <button class="btn-contribuir" data-modal-open>+ Añadir proyecto</button>
+    </div>
+  </div>
+</header>
+
+<script is:inline>
+  // Scroll-spy para nav activo
+  (() => {
+    const secciones = ['iniciativas', 'oficiales', 'fuentes', 'contribuir', 'acerca'];
+    const navLinks = document.querySelectorAll('.hnav-link');
+    window.addEventListener(
+      'scroll',
+      () => {
+        const y = window.scrollY + 120;
+        secciones.forEach((id, i) => {
+          const el = document.getElementById(id);
+          if (el && el.offsetTop <= y) {
+            navLinks.forEach((l) => l.classList.remove('active'));
+            if (navLinks[i]) navLinks[i].classList.add('active');
+          }
+        });
+      },
+      { passive: true }
+    );
+  })();
+</script>

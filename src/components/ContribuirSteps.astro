@@ -1,0 +1,51 @@
+---
+const pasos = [
+  {
+    num: '01',
+    titulo: 'Fork + Pull Request',
+    desc: 'Haz fork del repositorio, agrega tu iniciativa como un archivo Markdown en src/content/iniciativas/ y abre un Pull Request.',
+    code: `gh repo fork DanielD-S/geohub-chile
+git checkout -b add/mi-iniciativa
+# crear src/content/iniciativas/mi-iniciativa.md
+gh pr create`,
+  },
+  {
+    num: '02',
+    titulo: 'Formato de metadatos',
+    desc: 'Cada iniciativa necesita frontmatter con: nombre, categoría, descripción, fuente institucional, capas, acciones y archivos.',
+    code: `---
+nombre: "Mi catastro"
+categoria: ambiental
+icono: "🌿"
+estado: activo
+estadoTexto: "Activo — Jun 2026"
+descripcion: "..."
+capas: [Capa A, Capa B]
+tags: "palabras clave"
+acciones:
+  - { tipo: github, texto: "GitHub", url: "https://..." }
+---`,
+  },
+  {
+    num: '03',
+    titulo: 'Criterios de calidad',
+    desc: 'Los datos deben ser de fuente oficial o institucional, en formato abierto (GeoJSON, Shapefile, CSV, WMS/WFS), con licencia libre y documentados.',
+    code: `✓ Fuente oficial o citable
+✓ Formato abierto
+✓ Licencia libre
+✓ Metadatos completos
+✓ Sistema de referencia indicado`,
+  },
+];
+---
+
+<div class="contribuir-grid">
+  {pasos.map((p) => (
+    <div class="paso-contribuir">
+      <div class="paso-num-c">{p.num}</div>
+      <h3>{p.titulo}</h3>
+      <p>{p.desc}</p>
+      <code>{p.code}</code>
+    </div>
+  ))}
+</div>

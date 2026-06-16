@@ -1,0 +1,93 @@
+---
+const categorias = [
+  { id: 'todos', label: 'Todos' },
+  { id: 'mineria', label: 'Minería' },
+  { id: 'ambiental', label: 'Ambiental' },
+  { id: 'riesgo', label: 'Riesgos' },
+  { id: 'hidrico', label: 'Hídrico' },
+  { id: 'social', label: 'Social' },
+  { id: 'admin', label: 'Admin. territorial' },
+];
+---
+
+<div class="filtros-bar">
+  <div class="filtros-inner">
+    <span class="filtro-lbl">Categoría</span>
+    {categorias.map((c, i) => (
+      <button
+        class={`filtro-btn${i === 0 ? ' active' : ''}`}
+        data-filtro={c.id}
+      >
+        {c.label}
+      </button>
+    ))}
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input
+        class="search-input"
+        type="text"
+        placeholder="Buscar iniciativa…"
+        data-search
+      />
+    </div>
+  </div>
+</div>
+
+<script is:inline>
+  (() => {
+    const filtroBtns = document.querySelectorAll('[data-filtro]');
+    const searchInput = document.querySelector('[data-search]');
+    const sinResultados = () => document.getElementById('sin-resultados');
+
+    let catActiva = 'todos';
+    let term = '';
+
+    function aplicar() {
+      const cards = document.querySelectorAll('.iniciativa-card');
+      let visibles = 0;
+      cards.forEach((c) => {
+        const matchCat = catActiva === 'todos' || c.dataset.cat === catActiva;
+        const texto = (
+          (c.dataset.tags || '') +
+          ' ' +
+          (c.querySelector('.card-title-text')?.textContent || '') +
+          ' ' +
+          (c.querySelector('.card-desc')?.textContent || '')
+        ).toLowerCase();
+        const matchTerm = !term || texto.includes(term);
+        const mostrar = matchCat && matchTerm;
+        c.style.display = mostrar ? '' : 'none';
+        if (mostrar) visibles++;
+      });
+      const sr = sinResultados();
+      if (sr) sr.classList.toggle('hidden', visibles > 0);
+    }
+
+    filtroBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        filtroBtns.forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        catActiva = btn.dataset.filtro;
+        aplicar();
+      });
+    });
+
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        term = e.target.value.toLowerCase().trim();
+        aplicar();
+      });
+    }
+
+    // Reset desde "Ver todas"
+    document.addEventListener('click', (e) => {
+      if (e.target?.matches('[data-reset-filtros]')) {
+        catActiva = 'todos';
+        term = '';
+        if (searchInput) searchInput.value = '';
+        filtroBtns.forEach((b, i) => b.classList.toggle('active', i === 0));
+        aplicar();
+      }
+    });
+  })();
+</script>

@@ -1,0 +1,168 @@
+---
+interface Props {
+  repo?: string; // formato "owner/repo"
+}
+const { repo = 'DanielD-S/geohub-chile' } = Astro.props;
+const issuesNewUrl = `https://github.com/${repo}/issues/new`;
+---
+
+<div class="modal-overlay" id="modal-overlay" data-issues-new-url={issuesNewUrl}>
+  <div class="modal">
+    <button class="modal-close" data-modal-close aria-label="Cerrar">✕</button>
+    <h2>Añadir tu iniciativa</h2>
+    <p>
+      Completa los datos básicos. Al enviar, se abrirá un Issue pre-rellenado
+      en GitHub: solo confirma y queda registrado.
+      <strong style="color:var(--verde)">Necesitas cuenta de GitHub</strong>
+      (es gratis).
+    </p>
+    <div class="campo-form">
+      <label>Nombre de la iniciativa *</label>
+      <input id="prop-nombre" type="text" placeholder="Catastro de…" required />
+    </div>
+    <div class="campo-form">
+      <label>Categoría *</label>
+      <select id="prop-categoria">
+        <option value="mineria">Minería</option>
+        <option value="ambiental">Ambiental</option>
+        <option value="riesgo">Riesgos</option>
+        <option value="hidrico">Hídrico</option>
+        <option value="social">Social</option>
+        <option value="admin">Admin. territorial</option>
+        <option value="energia">Energía</option>
+        <option value="otro">Otro</option>
+      </select>
+    </div>
+    <div class="campo-form">
+      <label>URL del repositorio o descarga *</label>
+      <input id="prop-url" type="url" placeholder="https://github.com/…" required />
+    </div>
+    <div class="campo-form">
+      <label>Fuente institucional</label>
+      <input id="prop-fuente" type="text" placeholder="SERNAGEOMIN, SEA, BCN…" />
+    </div>
+    <div class="campo-form">
+      <label>Descripción breve *</label>
+      <textarea
+        id="prop-desc"
+        placeholder="Qué contienen los datos, cobertura, fecha de actualización, formato, EPSG…"
+        required
+      ></textarea>
+    </div>
+    <div class="campo-form">
+      <label>Tu nombre o usuario (opcional)</label>
+      <input id="prop-autor" type="text" placeholder="@tuusuario o nombre" />
+    </div>
+    <button class="btn-submit" data-modal-submit>Enviar propuesta a GitHub →</button>
+  </div>
+</div>
+
+<script is:inline>
+  (() => {
+    const overlay = document.getElementById('modal-overlay');
+    if (!overlay) return;
+    const open = () => {
+      overlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    };
+    const close = () => {
+      overlay.classList.remove('open');
+      document.body.style.overflow = '';
+    };
+
+    function valor(id) {
+      return (document.getElementById(id)?.value || '').trim();
+    }
+
+    function construirIssueUrl() {
+      const base = overlay.dataset.issuesNewUrl;
+      const nombre   = valor('prop-nombre');
+      const categoria= valor('prop-categoria');
+      const url      = valor('prop-url');
+      const fuente   = valor('prop-fuente');
+      const desc     = valor('prop-desc');
+      const autor    = valor('prop-autor');
+
+      if (!nombre || !url || !desc) {
+        alert('Por favor completa los campos obligatorios: nombre, URL y descripción.');
+        return null;
+      }
+
+      const title = `[Propuesta] ${nombre}`;
+      const body = [
+        '## Iniciativa propuesta',
+        '',
+        `**Nombre:** ${nombre}`,
+        `**Categoría:** ${categoria}`,
+        `**Fuente institucional:** ${fuente || '_(no indicada)_'}`,
+        `**URL del repo/descarga:** ${url}`,
+        autor ? `**Propuesta por:** ${autor}` : null,
+        '',
+        '## Descripción',
+        '',
+        desc,
+        '',
+        '---',
+        '',
+        '### Checklist de aprobación (para el curador)',
+        '',
+        '- [ ] Fuente oficial o citable',
+        '- [ ] Formato abierto (GeoJSON, SHP, CSV, WMS/WFS, etc.)',
+        '- [ ] Licencia libre',
+        '- [ ] Sistema de referencia indicado',
+        '- [ ] Metadatos suficientes',
+        '',
+        '_Propuesta enviada desde el formulario web de GeoHub Chile._',
+      ].filter(Boolean).join('\n');
+
+      const params = new URLSearchParams({
+        title,
+        body,
+        labels: 'propuesta-iniciativa',
+      });
+      return `${base}?${params.toString()}`;
+    }
+
+    document.addEventListener('click', (e) => {
+      const t = e.target;
+      if (!(t instanceof Element)) return;
+      if (t.closest('[data-modal-open]')) {
+        e.preventDefault();
+        open();
+      } else if (t.closest('[data-modal-close]')) {
+        close();
+      } else if (t === overlay) {
+        close();
+      } else if (t.closest('[data-modal-submit]')) {
+        const url = construirIssueUrl();
+        if (!url) return;
+        window.open(url, '_blank');
+        close();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') close();
+    });
+
+    // Acordeón de paneles de archivos
+    document.addEventListener('click', (e) => {
+      const btn = e.target?.closest?.('[data-toggle-archivos]');
+      if (!btn) return;
+      const id = btn.dataset.toggleArchivos;
+      const panel = document.getElementById('archivos-' + id);
+      if (!panel) return;
+      const isOpen = panel.classList.contains('open');
+      document
+        .querySelectorAll('.archivos-panel.open')
+        .forEach((p) => p.classList.remove('open'));
+      document
+        .querySelectorAll('[data-toggle-archivos]')
+        .forEach((b) => (b.textContent = b.textContent.replace('▴', '▾').replace('Ocultar', 'Ver capas')));
+      if (!isOpen) {
+        panel.classList.add('open');
+        btn.textContent = 'Ocultar ▴';
+      }
+    });
+  })();
+</script>

@@ -1,0 +1,55 @@
+---
+interface Props {
+  iniciativasCount: number;
+}
+const { iniciativasCount } = Astro.props;
+---
+
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-eyebrow"><span>⬡</span> Comunidad geoespacial · Chile</div>
+    <h1>
+      Datos públicos <em>difíciles de encontrar</em>,<br />
+      herramientas hechas por <em>la comunidad</em>
+    </h1>
+    <p class="hero-desc">
+      Un complemento abierto a
+      <a href="https://www.ide.cl" target="_blank" rel="noopener" class="link-ide">IDE Chile</a>
+      y los portales oficiales del Estado. Aquí publicamos catastros
+      pre-procesados, capas que no están listas para descarga directa, visores
+      y scripts creados por la comunidad. Todo libre, gratuito y citable.
+    </p>
+    <div class="hero-actions">
+      <a href="#iniciativas" class="btn-hero-p">Ver iniciativas de la comunidad</a>
+      <a href="#oficiales" class="btn-hero-s">Portales oficiales</a>
+    </div>
+    <div class="hero-stats">
+      <div class="hstat">
+        <div class="hstat-val">{iniciativasCount}</div>
+        <div class="hstat-lbl">Iniciativas comunitarias</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-val">195k+</div>
+        <div class="hstat-lbl">Registros mineros<br />pre-procesados</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-val">50+</div>
+        <div class="hstat-lbl">Capas GeoJSON<br />listas para usar</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-val">$0</div>
+        <div class="hstat-lbl">Sin API keys<br />sin registros</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .link-ide {
+    color: var(--verde);
+    text-decoration: underline;
+    text-decoration-color: rgba(61,214,140,0.4);
+    text-underline-offset: 3px;
+  }
+  .link-ide:hover { text-decoration-color: var(--verde); }
+</style>

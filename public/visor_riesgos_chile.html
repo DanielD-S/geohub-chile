@@ -1,0 +1,3393 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monitor de Riesgos Meteorológicos — Chile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+/* ══════════════════════════════════════════════════
+   RIESGOSCL — Sistema de diseño v2
+   Handoff: IBM Plex + carbón neutro + cian sobrio
+══════════════════════════════════════════════════ */
+:root {
+  /* Base — carbón neutro */
+  --void:       #0a0c11;
+  --panel:      #0e1219;
+  --surface:    #13181f;
+  --surface2:   #1a212b;
+  --border:     #252d39;
+  --border2:    #343d4c;
+
+  /* Identidad — cian sobrio */
+  --cian:       #2cd4e0;
+  --cian-dim:   #1a8e9b;
+  --cian-glow:  rgba(44,212,224,0.10);
+
+  /* Semáforo de riesgo — NO cambiar: usados por JS */
+  --r0: #22b35e;
+  --r1: #f5c518;
+  --r2: #f4820a;
+  --r3: #e63946;
+  --r4: #9b2335;
+
+  /* Fenómenos — NO cambiar: usados por JS y marcadores */
+  --fuego:   #ff6b35;
+  --lluvia:  #4cc9f0;
+  --helada:  #a8dadc;
+  --nieve:   #dce8f5;
+  --viento:  #8d99ae;
+
+  /* Texto */
+  --t1: #eef2f8;
+  --t2: #94a2b5;
+  --t3: #5d6979;
+
+  /* Tipografía — IBM Plex */
+  --sans:  'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --mono:  'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+  --serif: 'IBM Plex Sans', system-ui, sans-serif;
+
+  --r:    8px;
+  --ease: 0.18s ease;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--void);
+  color: var(--t1);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'ss01','cv05';
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  height: 58px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 1000;
+  gap: 1rem;
+}
+.brand {
+  display: flex; align-items: center; gap: 0.6rem;
+  flex-shrink: 0;
+}
+.back-hub {
+  display: inline-flex; align-items: center;
+  font-family: var(--mono);
+  font-size: 11px; letter-spacing: 1px;
+  text-transform: uppercase; font-weight: 600;
+  color: var(--t2); text-decoration: none;
+  padding: 4px 10px;
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  margin-right: 0.4rem;
+  transition: all 0.15s;
+}
+.back-hub:hover {
+  color: var(--cian); border-color: var(--cian);
+  background: var(--cian-glow);
+}
+.brand-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--cian);
+  box-shadow: 0 0 0 3px rgba(44,212,224,.16);
+  animation: blink 2.6s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.35} }
+.brand-name {
+  font-family: var(--mono);
+  font-size: 13px; letter-spacing: 2.5px;
+  text-transform: uppercase; font-weight: 600;
+  color: var(--t1);
+}
+.brand-name span { color: var(--cian); }
+
+.topbar-center {
+  display: flex; align-items: center; gap: 0.5rem;
+  flex: 1; justify-content: center; flex-wrap: wrap;
+}
+.zona-label { font-family: var(--mono); font-size: 10px; color: var(--t3); text-transform: uppercase; letter-spacing: 1px; }
+.zona-select {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--t1); padding: 0.3rem 0.6rem;
+  border-radius: var(--r); font-size: 12px; cursor: pointer;
+  font-family: var(--sans); min-width: 200px;
+  transition: border-color var(--ease);
+}
+.zona-select:focus { outline: none; border-color: var(--cian); }
+.btn-refresh {
+  background: none; border: 1px solid var(--cian-dim);
+  color: var(--cian); padding: 0.3rem 0.75rem;
+  border-radius: var(--r); font-size: 11px;
+  cursor: pointer; font-family: var(--mono);
+  letter-spacing: 1px; text-transform: uppercase;
+  transition: background var(--ease);
+}
+.btn-refresh:hover { background: var(--cian-glow); }
+
+.topbar-right {
+  display: flex; align-items: center; gap: 1rem;
+  flex-shrink: 0;
+}
+.live-badge {
+  display: flex; align-items: center; gap: 0.35rem;
+  font-family: var(--mono); font-size: 10px;
+  color: var(--r0); text-transform: uppercase; letter-spacing: 1px;
+}
+.live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--r0);
+  animation: blink 1.6s infinite;
+}
+#hora-update { font-family: var(--mono); font-size: 10px; color: var(--t3); }
+
+/* ── NAV PESTAÑAS ── */
+.nav-tabs {
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  display: flex; overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0 0.6rem;
+}
+.nav-tabs::-webkit-scrollbar { display: none; }
+.tab-btn {
+  background: none; border: none;
+  padding: 0 1.2rem; height: 46px;
+  color: var(--t3); font-size: 13px; font-weight: 500;
+  cursor: pointer; white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: color var(--ease), border-color var(--ease);
+  font-family: var(--sans);
+}
+.tab-btn:hover { color: var(--t1); }
+.tab-btn.active { color: var(--cian); border-bottom-color: var(--cian); }
+.tab-sep {
+  width: 1px; background: var(--border); opacity: .55;
+  margin: 13px 0; align-self: stretch; flex-shrink: 0;
+}
+
+/* ── LAYOUT PRINCIPAL ── */
+main {
+  max-width: 1280px; margin: 0 auto;
+  padding: 1.25rem 1rem 4rem;
+}
+.section { display: none; }
+.section.active {
+  display: block;
+  animation: fadein .25s ease;
+}
+@keyframes fadein {
+  from { opacity:0; transform:translateY(4px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+/* ── ALERTA BANNER ── */
+.alert-banner {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.9rem 1.15rem; border-radius: var(--r);
+  margin-bottom: 1.25rem; font-size: 13.5px; font-weight: 500;
+  border: 1px solid;
+}
+.ab-r0 { background:rgba(34,179,94,0.07);  border-color:rgba(34,179,94,0.3);  color:var(--r0); }
+.ab-r1 { background:rgba(245,197,24,0.07); border-color:rgba(245,197,24,0.3); color:var(--r1); }
+.ab-r2 { background:rgba(244,130,10,0.07); border-color:rgba(244,130,10,0.3); color:var(--r2); }
+.ab-r3 { background:rgba(230,57,70,0.08);  border-color:rgba(230,57,70,0.35); color:var(--r3); }
+.ab-r4 { background:rgba(155,35,53,0.09);  border-color:rgba(155,35,53,0.45); color:var(--r4); }
+
+/* ── CHIPS — acento superior via ::before ── */
+.chips-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: .85rem; margin-bottom: 1.25rem;
+}
+.chip {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 1.1rem 1.1rem 1rem;
+  display: flex; flex-direction: column; gap: .3rem;
+  transition: border-color var(--ease), background var(--ease);
+  cursor: default; overflow: hidden; position: relative;
+}
+.chip::before {
+  content: ''; position: absolute;
+  top: 0; left: 0; right: 0; height: 2px;
+  background: var(--chip-c);
+}
+.chip:hover { border-color: var(--border2); background: var(--surface2); }
+
+/* Cada variante define --chip-c */
+.chip-fuego  { --chip-c: var(--fuego); }
+.chip-lluvia { --chip-c: var(--lluvia); }
+.chip-helada { --chip-c: var(--helada); }
+.chip-nieve  { --chip-c: var(--nieve); }
+.chip-viento { --chip-c: var(--viento); }
+.chip-alerta { --chip-c: var(--cian); }
+
+.chip-header {
+  display: flex; align-items: center; gap: 0.4rem;
+  font-size: 10.5px; text-transform: uppercase;
+  letter-spacing: 1.2px; color: var(--t2);
+  font-family: var(--mono);
+}
+.chip-val {
+  font-family: var(--mono);
+  font-size: 1.75rem; font-weight: 600;
+  color: var(--t1); line-height: 1;
+  letter-spacing: -0.02em;
+}
+.chip-sub { font-size: 11.5px; color: var(--t2); }
+.chip-bar {
+  height: 3px; background: rgba(255,255,255,.06);
+  border-radius: 2px; overflow: hidden; margin-top: 4px;
+}
+.chip-fill { height: 100%; border-radius: 2px; transition: width 0.6s ease; }
+
+/* ── GRID CONTENIDO ── */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.1rem; }
+.three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.1rem; }
+.col-7-3 { display: grid; grid-template-columns: 7fr 3fr; gap: 1.1rem; }
+@media(max-width:840px) { .two-col,.three-col,.col-7-3 { grid-template-columns:1fr; } }
+
+/* ── CARD ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r); padding: 1.25rem;
+}
+.card-title {
+  font-family: var(--mono); font-size: 11px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 1.5px;
+  color: var(--t2); margin-bottom: 1.1rem;
+  display: flex; align-items: center; gap: 0.5rem;
+}
+.card-title::after {
+  content: ''; flex: 1; height: 1px;
+  background: linear-gradient(90deg, var(--border), transparent);
+}
+.chart-box { position: relative; height: 210px; }
+.chart-box.tall { height: 290px; }
+
+/* ── MAPA ── */
+#mapa {
+  height: 540px; border-radius: var(--r);
+  border: 1px solid var(--border);
+}
+.mapa-controls {
+  display: flex; gap: 0.5rem; flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+.layer-btn {
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--t2); padding: 0.3rem 0.9rem;
+  border-radius: 20px; cursor: pointer; font-size: 11px;
+  transition: all var(--ease); font-family: var(--sans);
+}
+.layer-btn.active, .layer-btn:hover {
+  border-color: var(--cian-dim); color: var(--cian);
+  background: var(--cian-glow);
+}
+.leyenda {
+  display: flex; flex-wrap: wrap; gap: 1rem;
+  padding: 0.75rem 1rem; margin-top: 0.75rem;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); font-size: 11.5px; color: var(--t2);
+}
+.ley { display: flex; align-items: center; gap: 0.35rem; }
+.ley-c { width: 10px; height: 10px; border-radius: 50%; }
+
+/* ── PRONÓSTICO 7 DÍAS ── */
+.dias-grid {
+  display: grid;
+  grid-template-columns: repeat(7,1fr);
+  gap: .65rem;
+}
+@media(max-width:700px){ .dias-grid { grid-template-columns:repeat(4,1fr); } }
+.dia {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 0.75rem 0.4rem;
+  text-align: center; transition: border-color var(--ease);
+}
+.dia:hover { border-color: var(--border2); }
+.dia-nom   { font-family: var(--mono); font-size: 10px; color: var(--t3); text-transform: uppercase; letter-spacing: 0.5px; }
+.dia-fecha { font-family: var(--mono); font-size: 9px; color: var(--t3); margin-top: 1px; }
+.dia-ico   { font-size: 1.5rem; margin: 0.4rem 0; }
+.dia-tmax  { font-family: var(--mono); font-size: 1.05rem; font-weight: 600; color: var(--t1); }
+.dia-tmin  { font-family: var(--mono); font-size: 10px; color: var(--t2); }
+.dia-mm    { font-size: 10px; color: var(--lluvia); margin-top: 3px; }
+.dia-nv    { font-size: 10px; color: var(--nieve); }
+.dia-badge {
+  margin-top: 5px; font-family: var(--mono);
+  font-size: 9px; font-weight: 600;
+  padding: 1px 6px; border-radius: 10px; display: inline-block;
+}
+.db-ok { background:rgba(34,179,94,0.15);  color:var(--r0); }
+.db-1  { background:rgba(245,197,24,0.15); color:var(--r1); }
+.db-2  { background:rgba(244,130,10,0.15); color:var(--r2); }
+.db-3  { background:rgba(230,57,70,0.15);  color:var(--r3); }
+
+/* ── TABLA ── */
+.tbl-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+}
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+th {
+  padding: 0.5rem 0.6rem; background: var(--surface2);
+  color: var(--t3); font-size: 9.5px; text-transform: uppercase;
+  letter-spacing: 1px; border-bottom: 1px solid var(--border);
+  font-family: var(--mono); text-align: left;
+}
+td {
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--border); color: var(--t2);
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); color: var(--t1); }
+.num { font-family: var(--mono); text-align: right; font-variant-numeric: tabular-nums; }
+.badge-nivel {
+  display: inline-block; padding: 1px 7px;
+  border-radius: 10px; font-family: var(--mono);
+  font-size: 10px; font-weight: 600;
+}
+.bn0 { background:rgba(34,179,94,0.12);  color:var(--r0); }
+.bn1 { background:rgba(245,197,24,0.12); color:var(--r1); }
+.bn2 { background:rgba(244,130,10,0.12); color:var(--r2); }
+.bn3 { background:rgba(230,57,70,0.12);  color:var(--r3); }
+.bn4 { background:rgba(155,35,53,0.15);  color:var(--r4); }
+
+/* ── INCENDIOS — KPIs ── */
+.focos-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px,1fr));
+  gap: 0.75rem; margin-bottom: 1.25rem;
+}
+.foco-kpi {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 1.1rem;
+  position: relative; overflow: hidden;
+}
+.foco-kpi::before {
+  content: ''; position: absolute;
+  top: 0; left: 0; right: 0; height: 2px;
+  background: var(--fuego);
+}
+.foco-kpi .lbl { font-size: 9.5px; color: var(--t3); font-family: var(--mono); text-transform: uppercase; letter-spacing: 1.2px; }
+.foco-kpi .val { font-family: var(--mono); font-size: 1.7rem; font-weight: 600; color: var(--fuego); line-height: 1.1; margin: 3px 0; }
+.foco-kpi .sub { font-size: 11px; color: var(--t2); }
+
+/* ── UPLOAD ZONE ── */
+.upload-zone {
+  border: 1.5px dashed var(--border2); border-radius: var(--r);
+  padding: 2.25rem; text-align: center; cursor: pointer;
+  background: var(--surface);
+  transition: border-color var(--ease), background var(--ease);
+  margin-bottom: 1rem;
+}
+.upload-zone:hover, .upload-zone.drag {
+  border-color: var(--cian); background: var(--cian-glow);
+}
+.upload-zone input { display: none; }
+.upload-zone p { color: var(--t2); font-size: 13px; }
+.upload-zone strong { color: var(--cian); }
+.btn-demo {
+  background: var(--surface2); border: 1px solid var(--cian-dim);
+  color: var(--cian); padding: 0.45rem 1.2rem;
+  border-radius: var(--r); cursor: pointer; font-size: 12px;
+  font-family: var(--mono); text-transform: uppercase;
+  letter-spacing: 1px; margin-top: 0.75rem;
+  transition: background var(--ease);
+}
+.btn-demo:hover { background: var(--cian-glow); }
+
+/* ── SECCIÓN HEADER ── */
+.sec-hdr {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border);
+}
+.sec-hdr h2 {
+  font-family: var(--sans);
+  font-size: 1.5rem; font-weight: 600;
+  color: var(--t1); letter-spacing: -0.015em;
+}
+.sec-hdr h2 span { color: var(--cian); }
+.sec-hdr p { color: var(--t2); font-size: 13px; margin-top: 0.25rem; max-width: 74ch; }
+
+/* ── FENÓMENOS CARDS ── */
+.fen-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(255px,1fr)); gap: 1rem; }
+.fen-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 1.25rem;
+  border-top: 2px solid;
+}
+.fen-card.f-fuego { border-top-color: var(--fuego); }
+.fen-card.f-lluvia{ border-top-color: var(--lluvia); }
+.fen-card.f-helada{ border-top-color: var(--helada); }
+.fen-card.f-nieve { border-top-color: var(--nieve); }
+.fen-card.f-viento{ border-top-color: var(--viento); }
+.fen-ico { font-size: 1.8rem; margin-bottom: 0.5rem; }
+.fen-card h3 { font-size: 14px; font-weight: 600; color: var(--t1); margin-bottom: 0.4rem; }
+.fen-card p  { font-size: 12.5px; color: var(--t2); line-height: 1.75; }
+.fen-umbral {
+  display: inline-block; margin-top: 0.6rem;
+  background: rgba(44,212,224,.05); border: 1px solid var(--border2);
+  color: var(--t2); font-family: var(--mono); font-size: 10px;
+  padding: 3px 9px; border-radius: 20px;
+}
+
+/* ── ANILLOS SVG ── */
+.rings-row {
+  display: flex; flex-wrap: wrap;
+  gap: 1.5rem; justify-content: center;
+  padding: 0.75rem 0;
+}
+.ring { position:relative; width:100px; height:100px; flex-shrink:0; }
+.ring svg { position:absolute; top:0; left:0; transform:rotate(-90deg); }
+.ring-inner {
+  position:absolute; inset:0;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+}
+.ring-num { font-family:var(--mono); font-size:1.35rem; font-weight:600; color:var(--t1); }
+.ring-lbl { font-family:var(--mono); font-size:9px; color:var(--t3); text-transform:uppercase; letter-spacing:0.5px; text-align:center; }
+
+/* ── SPINNER ── */
+.spin { text-align:center; padding:2rem; color:var(--t3); font-family:var(--mono); font-size:11px; }
+.spin-c {
+  width:28px; height:28px; border:2px solid var(--border2);
+  border-top-color:var(--cian); border-radius:50%;
+  animation:giro 0.7s linear infinite; margin:0 auto 0.75rem;
+}
+@keyframes giro { to{transform:rotate(360deg)} }
+
+/* ── GUÍA / SOS ── */
+.sos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(135px,1fr));
+  gap: 0.75rem; margin-bottom: 1.5rem;
+}
+.sos-num {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 0.85rem; text-align:center;
+  transition: border-color var(--ease);
+}
+.sos-num:hover { border-color: var(--cian-dim); }
+.sos-num .n {
+  font-family: var(--mono); font-size: 1.5rem;
+  font-weight: 600; color: var(--cian); line-height:1;
+}
+.sos-num .desc { font-size: 11px; color: var(--t2); margin-top: 3px; }
+
+/* ── HISTORIAL TABS ── */
+.hist-tabs { display:flex; gap:0.5rem; margin-bottom:1rem; flex-wrap:wrap; }
+.ht {
+  background:none; border:1px solid var(--border);
+  color:var(--t3); padding:0.3rem 0.9rem;
+  border-radius:20px; cursor:pointer; font-size:11px;
+  transition:all var(--ease); font-family:var(--sans);
+}
+.ht.active,.ht:hover { border-color:var(--cian-dim); color:var(--cian); background:var(--cian-glow); }
+
+/* ── SCRIPT VIEWER ── */
+.script-layout { display:grid; grid-template-columns:300px 1fr; gap:1.1rem; align-items:start; }
+@media(max-width:900px){ .script-layout { grid-template-columns:1fr; } }
+
+.script-sidebar { position:sticky; top:74px; }
+.script-toc {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--r); overflow:hidden;
+}
+.script-toc-hdr {
+  background:var(--surface2); padding:0.7rem 1rem;
+  font-family:var(--mono); font-size:10px; text-transform:uppercase;
+  letter-spacing:1.5px; color:var(--t3);
+  border-bottom:1px solid var(--border);
+}
+.toc-item {
+  display:block; padding:0.55rem 1rem;
+  font-size:12px; color:var(--t2); cursor:pointer;
+  border-left:2px solid transparent;
+  transition:all var(--ease); border-bottom:1px solid var(--border);
+  background:none; border-right:none; border-top:none;
+  text-align:left; width:100%; font-family:var(--sans);
+}
+.toc-item:last-child { border-bottom:none; }
+.toc-item:hover, .toc-item.active {
+  color:var(--cian); border-left-color:var(--cian);
+  background:var(--cian-glow);
+}
+.toc-num { font-family:var(--mono); color:var(--t3); font-size:10px; margin-right:0.4rem; }
+
+.script-meta {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--r); padding:1rem; margin-bottom:0.75rem;
+}
+.script-meta h4 { color:var(--t1); font-size:12px; margin-bottom:0.5rem; }
+.meta-row { display:flex; justify-content:space-between; font-size:11px; padding:3px 0; }
+.meta-row span:first-child { color:var(--t3); font-family:var(--mono); }
+.meta-row span:last-child  { color:var(--cian); }
+
+.btn-download {
+  display:flex; align-items:center; justify-content:center; gap:0.5rem;
+  width:100%; padding:0.65rem;
+  background:var(--cian); color:var(--void);
+  border:none; border-radius:var(--r); cursor:pointer;
+  font-size:12px; font-weight:700; font-family:var(--mono);
+  letter-spacing:1px; text-transform:uppercase;
+  transition:opacity var(--ease); margin-top:0.75rem;
+}
+.btn-download:hover { opacity:0.85; }
+
+.script-main {}
+.paso-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--r); margin-bottom:0.75rem; overflow:hidden;
+}
+.paso-header {
+  display:flex; align-items:center; gap:0.75rem;
+  padding:0.85rem 1rem; cursor:pointer;
+  transition:background var(--ease);
+  user-select:none;
+}
+.paso-header:hover { background:var(--surface2); }
+.paso-num {
+  width:28px; height:28px; border-radius:50%;
+  background:var(--cian-glow); border:1px solid var(--cian-dim);
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--mono); font-size:11px; color:var(--cian);
+  flex-shrink:0;
+}
+.paso-titulo { font-size:13px; color:var(--t1); font-weight:600; flex:1; }
+.paso-tag {
+  font-size:10px; font-family:var(--mono);
+  padding:2px 8px; border-radius:10px;
+}
+.tag-api    { background:rgba(0,212,255,0.1); color:var(--cian); border:1px solid var(--cian-dim); }
+.tag-qgis   { background:rgba(29,185,84,0.1); color:var(--r0);  border:1px solid rgba(29,185,84,0.3); }
+.tag-data   { background:rgba(245,197,24,0.1); color:var(--r1); border:1px solid rgba(245,197,24,0.3); }
+.tag-output { background:rgba(244,130,10,0.1); color:var(--r2); border:1px solid rgba(244,130,10,0.3); }
+.paso-arrow { color:var(--t3); font-size:11px; transition:transform var(--ease); }
+.paso-arrow.open { transform:rotate(180deg); }
+
+.paso-body { display:none; border-top:1px solid var(--border); }
+.paso-body.open { display:block; }
+.paso-desc {
+  padding:1rem; font-size:12px; color:var(--t2); line-height:1.8;
+  border-bottom:1px solid var(--border);
+}
+.paso-desc strong { color:var(--t1); }
+.paso-desc code {
+  background:var(--surface2); border:1px solid var(--border);
+  padding:1px 5px; border-radius:3px;
+  font-family:var(--mono); font-size:11px; color:var(--cian);
+}
+
+/* Bloque de código con syntax highlight manual */
+.code-block {
+  position:relative;
+  background:#050d18;
+  border-top:1px solid var(--border);
+}
+.code-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0.5rem 1rem;
+  background:var(--surface2); border-bottom:1px solid var(--border);
+}
+.code-lang { font-family:var(--mono); font-size:10px; color:var(--t3); text-transform:uppercase; }
+.btn-copy {
+  background:none; border:1px solid var(--border);
+  color:var(--t3); padding:2px 10px; border-radius:3px;
+  cursor:pointer; font-size:10px; font-family:var(--mono);
+  transition:all var(--ease); text-transform:uppercase;
+}
+.btn-copy:hover { border-color:var(--cian); color:var(--cian); }
+.btn-copy.copied { border-color:var(--r0); color:var(--r0); }
+pre {
+  margin:0; padding:1rem;
+  overflow-x:auto; font-family:var(--mono);
+  font-size:11px; line-height:1.7; color:#c9d1d9;
+  white-space:pre;
+}
+/* Colores syntax */
+.k  { color:#ff7b72; }  /* keywords */
+.s  { color:#a5d6ff; }  /* strings */
+.c  { color:#4a6580; font-style:italic; }  /* comments */
+.n  { color:#79c0ff; }  /* names/vars */
+.f  { color:#d2a8ff; }  /* functions */
+.num{ color:#f2cc60; }  /* numbers */
+.op { color:#ff7b72; }  /* operators */
+
+/* ── FUENTES ── */
+.fuentes-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:0.75rem; }
+.fuente {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--r); padding:1rem;
+}
+.fuente h4 { color:var(--t1); font-size:12px; margin-bottom:0.3rem; }
+.fuente p  { color:var(--t2); font-size:11px; line-height:1.6; margin-bottom:0.4rem; }
+.fuente a  { color:var(--cian-dim); font-size:11px; font-family:var(--mono); text-decoration:none; }
+.fuente a:hover { color:var(--cian); }
+.free-tag {
+  display:inline-block; margin-top:0.3rem;
+  background:rgba(29,185,84,0.1); border:1px solid rgba(29,185,84,0.3);
+  color:var(--r0); font-size:9px; font-family:var(--mono);
+  padding:1px 7px; border-radius:10px; letter-spacing:1px;
+}
+
+/* ── POPUP LEAFLET ── */
+.leaflet-popup-content-wrapper {
+  background:var(--surface2)!important; border:1px solid var(--border2)!important;
+  color:var(--t1)!important; border-radius:var(--r)!important;
+  box-shadow:0 12px 36px rgba(0,0,0,.6)!important;
+}
+.leaflet-popup-tip { background:var(--surface2)!important; }
+
+/* ── FOOTER ── */
+footer {
+  text-align:center; padding:1.5rem 1rem 2rem;
+  border-top:1px solid var(--border);
+  font-family:var(--mono); font-size:10.5px; line-height:1.9; color:var(--t3);
+}
+footer a { color:var(--cian-dim); text-decoration:none; transition:color var(--ease); }
+footer a:hover { color:var(--cian); }
+
+/* ── RESPONSIVE ── */
+@media(max-width:840px){ .two-col,.three-col,.col-7-3 { grid-template-columns:1fr; } }
+@media(max-width:700px){ .dias-grid { grid-template-columns:repeat(4,1fr); } }
+@media(max-width:900px){ .script-layout { grid-template-columns:1fr; } }
+@media(max-width:600px){
+  .topbar-center { flex-direction:column; gap:0.3rem; align-items:flex-start; }
+  .topbar { height:auto; padding:0.5rem 1rem; flex-wrap:wrap; gap:0.5rem; }
+  .chips-grid { grid-template-columns:1fr 1fr; }
+}
+
+/* ── Mapa: encabezado fuera del mapa + frame contenedor ── */
+.mapa-header {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 0.9rem 1.1rem 0.8rem;
+  margin-bottom: 0.75rem;
+  position: relative;
+  z-index: 2;
+}
+.mapa-header-top {
+  display: flex; flex-wrap: wrap;
+  justify-content: space-between; align-items: flex-start;
+  gap: 1rem 1.5rem;
+  padding-bottom: 0.75rem; margin-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+.mapa-header-title h2 {
+  font-family: var(--sans);
+  font-size: 1.15rem; font-weight: 600;
+  color: var(--t1); letter-spacing: -0.015em;
+  line-height: 1.25;
+}
+.mapa-header-title h2 span { color: var(--cian); }
+.mapa-header-title p {
+  color: var(--t2); font-size: 12px;
+  margin-top: 0.25rem; max-width: 60ch;
+}
+.mapa-leyenda {
+  display: flex; flex-wrap: wrap; gap: 0.5rem 0.9rem;
+  font-size: 11px; color: var(--t2);
+  align-self: center; min-width: 0;
+}
+.mapa-leyenda .ley { display: flex; align-items: center; gap: 0.35rem; }
+.mapa-leyenda .ley-c {
+  width: 12px; height: 12px; border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.25);
+}
+.mapa-controls-bar {
+  display: flex; gap: 0.5rem; flex-wrap: wrap;
+}
+
+.mapa-frame {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+  z-index: 1;
+  background: var(--surface);
+}
+/* Forzar al div del mapa a respetar su contenedor */
+#mapa-canvas {
+  height: 540px;
+  width: 100%;
+  position: relative;
+  display: block;
+}
+.mapa-frame .leaflet-container {
+  background: var(--surface);
+}
+.tooltip-usuario {
+  background: rgba(13,17,23,0.92) !important;
+  color: #2cd4e0 !important;
+  border: 1px solid #2cd4e0 !important;
+  font-family: 'Courier New', monospace !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  padding: 3px 8px !important;
+  border-radius: 5px !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4) !important;
+}
+.tooltip-usuario::before { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════ TOPBAR ══════════════════════════ -->
+<div class="topbar">
+  <div class="brand">
+    <a href="./" class="back-hub" title="Volver al hub GeoHub Chile">← Hub</a>
+    <div class="brand-dot"></div>
+    <div class="brand-name">RIESGOS<span>CL</span></div>
+  </div>
+  <div class="topbar-center">
+    <span class="zona-label">Zona</span>
+    <select class="zona-select" id="zona-sel" onchange="cambiarZona()">
+      <optgroup label="Norte">
+        <option value="-23.65,-70.40,Antofagasta">Antofagasta</option>
+        <option value="-29.91,-71.25,Coquimbo">Coquimbo / La Serena</option>
+      </optgroup>
+      <optgroup label="Central">
+        <option value="-33.03,-71.63,Valparaíso">Valparaíso</option>
+        <option value="-33.45,-70.67,Santiago" selected>Santiago / RM</option>
+        <option value="-34.17,-70.74,Rancagua">Rancagua / O'Higgins</option>
+      </optgroup>
+      <optgroup label="Centro-Sur">
+        <option value="-35.43,-71.67,Talca">Talca / Maule</option>
+        <option value="-36.82,-73.05,Concepción">Concepción / Biobío</option>
+        <option value="-37.47,-72.36,Los Ángeles">Los Ángeles</option>
+        <option value="-38.74,-72.60,Temuco">Temuco / Araucanía</option>
+      </optgroup>
+      <optgroup label="Sur">
+        <option value="-39.81,-73.24,Valdivia">Valdivia / Los Ríos</option>
+        <option value="-40.57,-73.13,Osorno">Osorno</option>
+        <option value="-41.47,-72.94,Puerto Montt">Puerto Montt</option>
+      </optgroup>
+      <optgroup label="Austral">
+        <option value="-45.57,-72.07,Coyhaique">Coyhaique / Aysén</option>
+        <option value="-53.16,-70.91,Punta Arenas">Punta Arenas / Magallanes</option>
+      </optgroup>
+      <optgroup label="Cordillera">
+        <option value="-33.36,-70.03,Los Andes">Los Andes (cordillera)</option>
+        <option value="-34.84,-70.11,Curicó Cord.">Curicó (cordillera)</option>
+      </optgroup>
+    </select>
+    <button class="btn-refresh" onclick="abrirCiudadModal()" title="Buscar otra ciudad">+ Ciudad</button>
+    <button class="btn-refresh" onclick="abrirArchivoModal()" title="Subir KMZ, KML o GeoJSON">+ Archivo</button>
+    <button class="btn-refresh" onclick="cargarTodo()">⟳ Actualizar</button>
+  </div>
+  <div class="topbar-right">
+    <div class="live-badge"><div class="live-dot"></div>Live</div>
+    <div id="hora-update">—</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════ TABS ══════════════════════════ -->
+<div class="nav-tabs">
+  <button class="tab-btn active" onclick="showTab('ahora',this)">Situación actual</button>
+  <div class="tab-sep"></div>
+  <button class="tab-btn" onclick="showTab('pronostico',this)">Pronóstico 7 días</button>
+  <div class="tab-sep"></div>
+  <button class="tab-btn" onclick="showTab('mapa',this)">Mapa nacional</button>
+  <div class="tab-sep"></div>
+  <button class="tab-btn" onclick="showTab('incendios',this)">Incendios FIRMS</button>
+  <div class="tab-sep"></div>
+  <button class="tab-btn" onclick="showTab('historial',this)">Historial</button>
+  <div class="tab-sep"></div>
+  <button class="tab-btn" onclick="showTab('fenomenos',this)">Fenómenos</button>
+  <div class="tab-sep"></div>
+  <button class="tab-btn" onclick="showTab('guia',this)">Guía ciudadana</button>
+  <div class="tab-sep"></div>
+  <button class="tab-btn" onclick="showTab('fuentes',this)">Fuentes</button>
+  <div class="tab-sep"></div>
+  <button class="tab-btn" onclick="showTab('script',this)">Script QGIS</button>
+</div>
+
+<!-- ══════════════════════════ MAIN ══════════════════════════ -->
+<main>
+
+<!-- ─── SITUACIÓN ACTUAL ─── -->
+<section id="ahora" class="section active">
+  <div id="banner-alerta"></div>
+
+  <div class="chips-grid" id="chips">
+    <div class="spin" style="grid-column:1/-1"><div class="spin-c"></div>Consultando Open-Meteo API…</div>
+  </div>
+
+  <div class="two-col" style="margin-bottom:1rem">
+    <div class="card">
+      <div class="card-title">🌡️ Temperatura 24h</div>
+      <div class="chart-box"><canvas id="c-temp"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🌧️ Precipitación horaria (mm)</div>
+      <div class="chart-box"><canvas id="c-lluvia"></canvas></div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">💨 Viento (km/h)</div>
+      <div class="chart-box"><canvas id="c-viento"></canvas></div>
+    </div>
+    <div class="card" style="display:flex;flex-direction:column">
+      <div class="card-title">📊 Índice de riesgo compuesto</div>
+      <div class="rings-row" id="rings">
+        <div class="spin"><div class="spin-c"></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── PRONÓSTICO 7 DÍAS ─── -->
+<section id="pronostico" class="section">
+  <div class="sec-hdr">
+    <h2>Pronóstico <span>7 días</span></h2>
+    <p>Temp. máx/mín, precipitación y nivel de alerta diario. Fuente: Open-Meteo (ECMWF + DWD).</p>
+  </div>
+
+  <div class="dias-grid" id="dias-grid" style="margin-bottom:1.25rem">
+    <div class="spin" style="grid-column:1/-1"><div class="spin-c"></div>Cargando pronóstico…</div>
+  </div>
+
+  <div class="two-col" style="margin-bottom:1rem">
+    <div class="card">
+      <div class="card-title">🌡️ Temperatura — 7 días</div>
+      <div class="chart-box"><canvas id="c-t7"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🌧️ Precipitación acumulada — 7 días</div>
+      <div class="chart-box"><canvas id="c-ll7"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">❄️ Eventos especiales: nieve · helada · viento fuerte</div>
+    <div class="chart-box"><canvas id="c-ev7"></canvas></div>
+  </div>
+</section>
+
+<!-- ─── MAPA NACIONAL ─── -->
+<section id="mapa" class="section">
+  <div class="mapa-header">
+    <div class="mapa-header-top">
+      <div class="mapa-header-title">
+        <h2>Mapa nacional de <span>riesgos</span></h2>
+        <p>13 zonas base + tus puntos. Color = nivel de alerta. Borde cian punteado = subido por ti.</p>
+      </div>
+      <div class="mapa-leyenda">
+        <div class="ley"><div class="ley-c" style="background:var(--r0)"></div> Sin alerta</div>
+        <div class="ley"><div class="ley-c" style="background:var(--r1)"></div> Amarilla</div>
+        <div class="ley"><div class="ley-c" style="background:var(--r2)"></div> Naranja</div>
+        <div class="ley"><div class="ley-c" style="background:var(--r3)"></div> Roja</div>
+        <div class="ley"><div class="ley-c" style="background:var(--fuego)"></div> Foco FIRMS</div>
+        <div class="ley"><div class="ley-c" style="background:transparent;border:2px dashed var(--cian)"></div> Tuyo</div>
+      </div>
+    </div>
+    <div class="mapa-controls-bar">
+      <button class="layer-btn active" onclick="setLayer('alertas',this)">🔴 Alertas meteorológicas</button>
+      <button class="layer-btn" onclick="setLayer('incendios',this)">🔥 Focos de incendio</button>
+      <button class="layer-btn" onclick="setLayer('ambos',this)">🔀 Ambas capas</button>
+    </div>
+  </div>
+  <div class="mapa-frame">
+    <div id="mapa-canvas"></div>
+  </div>
+
+  <div style="margin-top:1rem">
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Ciudad</th><th>Región</th>
+            <th class="num">T° actual</th>
+            <th class="num">Lluvia/h</th>
+            <th class="num">Viento</th>
+            <th class="num">Nieve</th>
+            <th>Alerta</th>
+          </tr>
+        </thead>
+        <tbody id="tbl-zonas">
+          <tr><td colspan="7" class="spin" style="padding:1.5rem;text-align:center">
+            <div class="spin-c" style="margin:0 auto 0.5rem"></div>Cargando zonas…
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ─── INCENDIOS ─── -->
+<section id="incendios" class="section">
+  <div class="sec-hdr">
+    <h2>Monitor de <span>incendios forestales</span></h2>
+    <p>Datos NASA FIRMS (MODIS/VIIRS) + estadísticas CONAF. Sube tu CSV generado desde QGIS para activar el análisis.</p>
+  </div>
+
+  <!-- KPIs demo -->
+  <div class="focos-panel" id="focos-kpis">
+    <div class="foco-kpi">
+      <div class="lbl">Total focos</div>
+      <div class="val" id="k-focos">—</div>
+      <div class="sub">NASA FIRMS periodo</div>
+    </div>
+    <div class="foco-kpi">
+      <div class="lbl">Comunas afectadas</div>
+      <div class="val" id="k-comunas">—</div>
+      <div class="sub">Con al menos 1 foco</div>
+    </div>
+    <div class="foco-kpi">
+      <div class="lbl">FRP acumulado</div>
+      <div class="val" id="k-frp">—</div>
+      <div class="sub">Intensidad total (MW)</div>
+    </div>
+    <div class="foco-kpi">
+      <div class="lbl">Región más afectada</div>
+      <div class="val" id="k-region" style="font-size:1rem;line-height:1.3">—</div>
+      <div class="sub">Mayor cantidad de focos</div>
+    </div>
+  </div>
+
+  <div class="two-col" style="margin-bottom:1rem">
+    <div class="card">
+      <div class="card-title">🔥 Focos por mes (temporada)</div>
+      <div class="chart-box"><canvas id="c-fi-mes"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">📍 Top regiones — focos detectados</div>
+      <div class="chart-box"><canvas id="c-fi-reg"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Upload CSV -->
+  <div class="upload-zone" id="drop-z" onclick="document.getElementById('fi').click()">
+    <div style="font-size:2rem;margin-bottom:0.5rem">📂</div>
+    <p>Sube <strong>indicadores_comunas.csv</strong> generado desde QGIS</p>
+    <p style="font-size:11px;color:var(--t3);margin-top:0.3rem">El archivo se procesa localmente — no se envía a ningún servidor</p>
+    <input type="file" id="fi" accept=".csv" onchange="cargarCSV(event)">
+    <br><button class="btn-demo" onclick="event.stopPropagation();loadDemo()">▶ DEMO DATA</button>
+  </div>
+
+  <div id="tbl-comunas-wrap" style="display:none">
+    <div class="card-title" style="margin-bottom:0.75rem">📋 Ranking comunas</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Comuna</th><th>Región</th>
+            <th class="num">Focos</th>
+            <th class="num">FRP (MW)</th>
+            <th class="num">Densidad/100km²</th>
+            <th class="num">Días activos</th>
+            <th>Nivel</th>
+          </tr>
+        </thead>
+        <tbody id="tbl-comunas"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ─── HISTORIAL ─── -->
+<section id="historial" class="section">
+  <div class="sec-hdr">
+    <h2>Historial <span>climatológico</span></h2>
+    <p>Datos ERA5 (Open-Meteo) e histórico CONAF. Estacionalidad y tendencias de largo plazo.</p>
+  </div>
+  <div class="hist-tabs">
+    <button class="ht active" onclick="hist('lluvia',this)">🌧️ Precipitación</button>
+    <button class="ht" onclick="hist('temp',this)">🌡️ Temperatura</button>
+    <button class="ht" onclick="hist('nieve',this)">❄️ Nieve</button>
+    <button class="ht" onclick="hist('viento',this)">💨 Viento</button>
+    <button class="ht" onclick="hist('incendios',this)">🔥 Incendios CONAF</button>
+  </div>
+  <div class="card" style="margin-bottom:1rem">
+    <div class="card-title" id="hist-tit">Precipitación mensual promedio (mm) · ERA5 multidécada</div>
+    <div class="chart-box tall"><canvas id="c-hist"></canvas></div>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">❄️ Días con helada por mes (promedio histórico)</div>
+      <div class="chart-box"><canvas id="c-heladas"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">🌐 Comparativa macrozonas</div>
+      <div class="chart-box"><canvas id="c-radar"></canvas></div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── FENÓMENOS ─── -->
+<section id="fenomenos" class="section">
+  <div class="sec-hdr">
+    <h2><span>Fenómenos</span> monitoreados</h2>
+    <p>Qué es cada alerta, por qué importa y cuáles son los umbrales utilizados.</p>
+  </div>
+  <div class="fen-grid">
+    <div class="fen-card f-fuego">
+      <div class="fen-ico">🔥</div>
+      <h3>Incendios forestales</h3>
+      <p>Detectados por satélite mediante FRP (Fire Radiative Power). Chile concentra el 99,7% de incendios por causas humanas. Las temporadas más críticas son diciembre–marzo en el eje Maule–Biobío–Araucanía.</p>
+      <span class="fen-umbral">FRP alto: &gt; 60 MW · Botón Rojo: ignición ≥70% + viento ≥20 km/h</span>
+    </div>
+    <div class="fen-card f-lluvia">
+      <div class="fen-ico">🌧️</div>
+      <h3>Precipitaciones extremas / aluviones</h3>
+      <p>En el norte árido, lluvias de baja recurrencia generan aluviones violentos. En el centro-sur, el riesgo es inundación de riberas y corte de caminos rurales en invierno.</p>
+      <span class="fen-umbral">Alerta: &gt;30 mm/6h · Crítico: &gt;60 mm/6h</span>
+    </div>
+    <div class="fen-card f-helada">
+      <div class="fen-ico">🌡️</div>
+      <h3>Heladas</h3>
+      <p>Afectan cultivos (viñas, frutales, hortalizas) y a la población vulnerable. Zonas de riesgo: valles interiores, precordillera y zonas australes. Periodo crítico: mayo–agosto.</p>
+      <span class="fen-umbral">Alerta: &lt;2°C · Crítico: &lt;-5°C</span>
+    </div>
+    <div class="fen-card f-nieve">
+      <div class="fen-ico">❄️</div>
+      <h3>Nevazones</h3>
+      <p>Eventos urbanos en Santiago (600–900 msnm) son raros pero paralizantes. En cordillera, el déficit de nieve equivale a crisis hídrica en verano. NASA MODIS monitorea cobertura nival.</p>
+      <span class="fen-umbral">Alerta: &gt;5 cm · Crítico: &gt;20 cm en 24h</span>
+    </div>
+    <div class="fen-card f-viento">
+      <div class="fen-ico">💨</div>
+      <h3>Viento sur / temporales costeros</h3>
+      <p>El viento patagónico puede superar 100 km/h en la zona austral. En la costa central genera marejadas y erosión costera. En ciudades, derriba árboles y corta la electricidad.</p>
+      <span class="fen-umbral">Alerta: &gt;60 km/h · Crítico: &gt;90 km/h</span>
+    </div>
+  </div>
+
+  <!-- Escala visual -->
+  <div style="margin-top:1.25rem" class="card">
+    <div class="card-title">🚦 Escala de niveles de alerta</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0.75rem;margin-top:0.5rem">
+      <div style="padding:0.85rem;border-radius:var(--r);background:rgba(29,185,84,0.06);border:1px solid rgba(29,185,84,0.2)">
+        <div style="color:var(--r0);font-weight:700;font-size:12px;margin-bottom:0.3rem">🟢 Sin alerta</div>
+        <p style="font-size:11px;color:var(--t2)">Condiciones normales. Actividades sin restricción.</p>
+      </div>
+      <div style="padding:0.85rem;border-radius:var(--r);background:rgba(245,197,24,0.06);border:1px solid rgba(245,197,24,0.2)">
+        <div style="color:var(--r1);font-weight:700;font-size:12px;margin-bottom:0.3rem">🟡 Alerta Amarilla</div>
+        <p style="font-size:11px;color:var(--t2)">Condiciones adversas moderadas. Informarse. Precaución en viajes.</p>
+      </div>
+      <div style="padding:0.85rem;border-radius:var(--r);background:rgba(244,130,10,0.06);border:1px solid rgba(244,130,10,0.2)">
+        <div style="color:var(--r2);font-weight:700;font-size:12px;margin-bottom:0.3rem">🟠 Alerta Naranja</div>
+        <p style="font-size:11px;color:var(--t2)">Riesgo real. Evitar zonas expuestas. Pre-alerta municipal.</p>
+      </div>
+      <div style="padding:0.85rem;border-radius:var(--r);background:rgba(230,57,70,0.07);border:1px solid rgba(230,57,70,0.25)">
+        <div style="color:var(--r3);font-weight:700;font-size:12px;margin-bottom:0.3rem">🔴 Alerta Roja</div>
+        <p style="font-size:11px;color:var(--t2)">Peligro inminente. Seguir instrucciones de SENAPRED.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── GUÍA CIUDADANA ─── -->
+<section id="guia" class="section">
+  <div class="sec-hdr">
+    <h2>Guía <span>ciudadana</span></h2>
+    <p>Qué hacer ante cada fenómeno. Números de emergencia. Para todos los públicos.</p>
+  </div>
+
+  <div class="sos-grid">
+    <div class="sos-num"><div class="n">131</div><div class="desc">SAMU</div></div>
+    <div class="sos-num"><div class="n">132</div><div class="desc">Bomberos</div></div>
+    <div class="sos-num"><div class="n">133</div><div class="desc">Carabineros</div></div>
+    <div class="sos-num"><div class="n">1409</div><div class="desc">SENAPRED</div></div>
+    <div class="sos-num"><div class="n">130</div><div class="desc">CONAF</div></div>
+    <div class="sos-num"><div class="n">800-104-777</div><div class="desc">Personas en frío</div></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:1rem">
+    <div class="card" style="border-top:3px solid var(--fuego)">
+      <div style="font-size:1.8rem;margin-bottom:0.5rem">🔥</div>
+      <div style="font-size:13px;color:var(--t1);font-weight:600;margin-bottom:0.6rem">Incendio forestal</div>
+      <div style="font-size:12px;color:var(--t2);line-height:1.9">
+        ✅ Llama al <strong style="color:var(--fuego)">130 (CONAF)</strong> de inmediato<br>
+        ✅ Evacúa siguiendo rutas definidas por tu municipio<br>
+        ✅ No intentes apagar el fuego sin entrenamiento<br>
+        ✅ Cierra puertas y ventanas para reducir humo<br>
+        ❌ No vuelvas a buscar pertenencias<br>
+        ❌ No grabes con el celular si estás en zona de riesgo
+      </div>
+    </div>
+    <div class="card" style="border-top:3px solid var(--lluvia)">
+      <div style="font-size:1.8rem;margin-bottom:0.5rem">🌧️</div>
+      <div style="font-size:13px;color:var(--t1);font-weight:600;margin-bottom:0.6rem">Aluvión / precipitación extrema</div>
+      <div style="font-size:12px;color:var(--t2);line-height:1.9">
+        ✅ Aléjate de quebradas y riberas<br>
+        ✅ No cruces cauces aunque parezcan bajos<br>
+        ✅ Identifica la ruta de evacuación de tu barrio<br>
+        ✅ Llama al <strong style="color:var(--lluvia)">1409 (SENAPRED)</strong><br>
+        ❌ No estaciones autos en zonas de inundación<br>
+        ❌ No vayas a "ver cómo está el río"
+      </div>
+    </div>
+    <div class="card" style="border-top:3px solid var(--helada)">
+      <div style="font-size:1.8rem;margin-bottom:0.5rem">🌡️</div>
+      <div style="font-size:13px;color:var(--t1);font-weight:600;margin-bottom:0.6rem">Helada / temperatura extrema</div>
+      <div style="font-size:12px;color:var(--t2);line-height:1.9">
+        ✅ Abriga a adultos mayores y niños<br>
+        ✅ Reporta personas en la calle al <strong style="color:var(--helada)">800-104-777</strong><br>
+        ✅ Protege cañerías expuestas<br>
+        ✅ Agricultores: usa sistemas antihielo<br>
+        ❌ No uses braseros sin ventilación (riesgo CO)<br>
+        ❌ No dejes animales en intemperie sin refugio
+      </div>
+    </div>
+    <div class="card" style="border-top:3px solid var(--nieve)">
+      <div style="font-size:1.8rem;margin-bottom:0.5rem">❄️</div>
+      <div style="font-size:13px;color:var(--t1);font-weight:600;margin-bottom:0.6rem">Nevazón</div>
+      <div style="font-size:12px;color:var(--t2);line-height:1.9">
+        ✅ Evita circular sin cadenas en vehículo<br>
+        ✅ Revisa rutas en <strong style="color:var(--nieve)">vialidad.cl</strong><br>
+        ✅ Refuerza techos de material ligero<br>
+        ✅ Sigue alertas de SENAMVIAL para pasos<br>
+        ❌ No intentes cruzar pasos cordilleranos<br>
+        ❌ No estaciones bajo árboles o tendido eléctrico
+      </div>
+    </div>
+    <div class="card" style="border-top:3px solid var(--viento)">
+      <div style="font-size:1.8rem;margin-bottom:0.5rem">💨</div>
+      <div style="font-size:13px;color:var(--t1);font-weight:600;margin-bottom:0.6rem">Viento fuerte / temporal</div>
+      <div style="font-size:12px;color:var(--t2);line-height:1.9">
+        ✅ Asegura objetos en balcones y jardines<br>
+        ✅ Aléjate de árboles o postes inestables<br>
+        ✅ Reporta cortes de luz a tu distribuidora<br>
+        ✅ Sector costero: sigue alertas SHOA<br>
+        ❌ No circules en moto con viento &gt;70 km/h<br>
+        ❌ No abras puertas durante ráfagas
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── FUENTES ─── -->
+<section id="fuentes" class="section">
+  <div class="sec-hdr">
+    <h2>Fuentes de <span>datos</span></h2>
+    <p>Todos los datos son públicos, gratuitos y oficiales. Costo total de operación: $0.</p>
+  </div>
+  <div class="fuentes-grid">
+    <div class="fuente">
+      <h4>🛰️ NASA FIRMS</h4>
+      <p>Puntos de calor MODIS/VIIRS en tiempo real y archivo histórico por país.</p>
+      <a href="https://firms.modaps.eosdis.nasa.gov/country/" target="_blank">firms.modaps.eosdis.nasa.gov ↗</a>
+      <br><span class="free-tag">GRATIS</span>
+    </div>
+    <div class="fuente">
+      <h4>⛅ Open-Meteo API</h4>
+      <p>Clima en tiempo real + pronóstico 7 días + historial ERA5. Sin API key ni registro.</p>
+      <a href="https://open-meteo.com" target="_blank">open-meteo.com ↗</a>
+      <br><span class="free-tag">GRATIS · CC BY 4.0</span>
+    </div>
+    <div class="fuente">
+      <h4>🌲 CONAF</h4>
+      <p>Estadísticas históricas de incendios 1985-2024. Sistema Botón Rojo de alerta.</p>
+      <a href="https://www.conaf.cl/incendios/" target="_blank">conaf.cl/incendios ↗</a>
+      <br><span class="free-tag">GRATIS</span>
+    </div>
+    <div class="fuente">
+      <h4>🗺️ BCN — Límites</h4>
+      <p>Shapefiles oficiales de comunas y regiones. SIRGAS 2000.</p>
+      <a href="https://www.bcn.cl/siit/mapas_vectoriales/" target="_blank">bcn.cl/siit ↗</a>
+      <br><span class="free-tag">GRATIS</span>
+    </div>
+    <div class="fuente">
+      <h4>🌊 DGA</h4>
+      <p>Recursos hídricos, caudales de ríos, datos de glaciares y cuencas.</p>
+      <a href="https://www.dga.cl" target="_blank">dga.cl ↗</a>
+      <br><span class="free-tag">GRATIS</span>
+    </div>
+    <div class="fuente">
+      <h4>🌐 IDE Chile</h4>
+      <p>Portal nacional de capas geoespaciales oficiales descargables.</p>
+      <a href="https://www.ide.cl" target="_blank">ide.cl ↗</a>
+      <br><span class="free-tag">GRATIS</span>
+    </div>
+    <div class="fuente">
+      <h4>🚨 SENAPRED</h4>
+      <p>Sistema Nacional de Prevención y Respuesta ante Desastres. Alertas oficiales.</p>
+      <a href="https://www.senapred.cl" target="_blank">senapred.cl ↗</a>
+      <br><span class="free-tag">GRATIS</span>
+    </div>
+    <div class="fuente">
+      <h4>🔭 ARClim MMA</h4>
+      <p>Atlas de Riesgo Climático Chile. Escenarios 1970-2070 por comunas vía API JSON.</p>
+      <a href="https://arclim.mma.gob.cl/atlas/api/" target="_blank">arclim.mma.gob.cl ↗</a>
+      <br><span class="free-tag">GRATIS</span>
+    </div>
+  </div>
+  <div style="margin-top:1.25rem" class="card">
+    <div class="card-title">📦 Stack tecnológico — costo $0</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0.75rem;margin-top:0.5rem;font-size:12px;color:var(--t2)">
+      <div>🗺️ <strong style="color:var(--t1)">Leaflet.js</strong> — mapas interactivos</div>
+      <div>📊 <strong style="color:var(--t1)">Chart.js</strong> — gráficos</div>
+      <div>📂 <strong style="color:var(--t1)">PapaParse</strong> — lectura CSV</div>
+      <div>🐍 <strong style="color:var(--t1)">QGIS + Python</strong> — geoprocesamiento</div>
+      <div>🌐 <strong style="color:var(--t1)">GitHub Pages</strong> — hosting</div>
+      <div>⛅ <strong style="color:var(--t1)">Open-Meteo</strong> — API clima</div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── SCRIPT QGIS ─── -->
+<section id="script" class="section">
+  <div class="sec-hdr">
+    <h2>Script <span>QGIS Python</span></h2>
+    <p>Código completo para procesar datos geoespaciales de incendios forestales. Descárgalo y ejecútalo directamente en QGIS 3.x.</p>
+  </div>
+
+  <div class="script-layout">
+
+    <!-- SIDEBAR -->
+    <div class="script-sidebar">
+      <div class="script-meta">
+        <h4>📋 Ficha del script</h4>
+        <div class="meta-row"><span>Entorno</span><span>QGIS 3.x Python</span></div>
+        <div class="meta-row"><span>Lenguaje</span><span>Python 3</span></div>
+        <div class="meta-row"><span>Deps.</span><span>PyQGIS · processing</span></div>
+        <div class="meta-row"><span>Fuente clima</span><span>NASA FIRMS CSV</span></div>
+        <div class="meta-row"><span>Fuente límites</span><span>BCN Shapefile</span></div>
+        <div class="meta-row"><span>Outputs</span><span>2 CSV + 1 SHP</span></div>
+        <div class="meta-row"><span>Costo</span><span>$0</span></div>
+      </div>
+
+      <div class="script-toc">
+        <div class="script-toc-hdr">Pasos del script</div>
+        <button class="toc-item active" onclick="scrollPaso('p1',this)"><span class="toc-num">01</span>Configuración</button>
+        <button class="toc-item" onclick="scrollPaso('p2',this)"><span class="toc-num">02</span>Cargar capas base</button>
+        <button class="toc-item" onclick="scrollPaso('p3',this)"><span class="toc-num">03</span>Procesar FIRMS</button>
+        <button class="toc-item" onclick="scrollPaso('p4',this)"><span class="toc-num">04</span>Join espacial</button>
+        <button class="toc-item" onclick="scrollPaso('p5',this)"><span class="toc-num">05</span>Calcular indicadores</button>
+        <button class="toc-item" onclick="scrollPaso('p6',this)"><span class="toc-num">06</span>Agregar por región</button>
+        <button class="toc-item" onclick="scrollPaso('p7',this)"><span class="toc-num">07</span>Exportar resultados</button>
+      </div>
+
+      <button class="btn-download" onclick="descargarScript()">
+        ⬇ Descargar .py
+      </button>
+    </div>
+
+    <!-- PASOS EXPLICADOS -->
+    <div class="script-main">
+
+      <!-- PASO 1 -->
+      <div class="paso-card" id="p1">
+        <div class="paso-header" onclick="togglePaso(this)">
+          <div class="paso-num">01</div>
+          <div class="paso-titulo">Configuración — edita solo este bloque</div>
+          <span class="paso-tag tag-qgis">QGIS</span>
+          <span class="paso-arrow">▼</span>
+        </div>
+        <div class="paso-body open">
+          <div class="paso-desc">
+            Antes de ejecutar el script, ajusta el diccionario <code>CONFIG</code>. Es el único lugar
+            que necesitas editar. Define las rutas a tus archivos descargados y el período de análisis.<br><br>
+            <strong>¿Dónde descargar los datos?</strong><br>
+            · <code>comunas_chile.shp</code> → <strong>bcn.cl/siit/mapas_vectoriales</strong><br>
+            · <code>firms_modis_chile.csv</code> → <strong>firms.modaps.eosdis.nasa.gov/country</strong> (requiere cuenta NASA Earthdata gratuita)<br><br>
+            El EPSG <code>5361</code> es SIRGAS 2000 / UTM Zona 19S, el sistema oficial de Chile continental.
+            Cambia a <code>5360</code> si trabajas en zona 18S (norte extremo).
+          </div>
+          <div class="code-block">
+            <div class="code-header">
+              <span class="code-lang">Python</span>
+              <button class="btn-copy" onclick="copiarBloque(this,'blk1')">Copiar</button>
+            </div>
+<pre id="blk1"><span class="c"># ══════════════════════════════════════════════════════════
+# CONFIGURACIÓN — edita estas rutas antes de ejecutar
+# ══════════════════════════════════════════════════════════</span>
+<span class="n">CONFIG</span> <span class="op">=</span> {
+    <span class="c"># Carpeta raíz donde están tus datos y se guardarán los outputs</span>
+    <span class="s">"dir_base"</span>:       <span class="s">"C:/GEO_CHILE/incendios"</span>,  <span class="c"># Windows</span>
+    <span class="c"># "dir_base":     "/home/usuario/geo_chile",  # Linux / Mac</span>
+
+    <span class="c"># Archivos de entrada</span>
+    <span class="s">"comunas_shp"</span>:    <span class="s">"comunas_chile.shp"</span>,
+    <span class="s">"regiones_shp"</span>:   <span class="s">"regiones_chile.shp"</span>,
+    <span class="s">"firms_csv"</span>:      <span class="s">"firms_modis_chile.csv"</span>,
+
+    <span class="c"># Columnas del CSV de NASA FIRMS</span>
+    <span class="s">"col_lat"</span>:        <span class="s">"latitude"</span>,
+    <span class="s">"col_lon"</span>:        <span class="s">"longitude"</span>,
+    <span class="s">"col_fecha"</span>:      <span class="s">"acq_date"</span>,    <span class="c"># formato YYYY-MM-DD</span>
+    <span class="s">"col_confianza"</span>:  <span class="s">"confidence"</span>,  <span class="c"># 0–100</span>
+    <span class="s">"col_frp"</span>:        <span class="s">"frp"</span>,         <span class="c"># Fire Radiative Power (MW)</span>
+
+    <span class="c"># Filtros</span>
+    <span class="s">"confianza_minima"</span>: <span class="num">50</span>,           <span class="c"># descarta puntos poco confiables</span>
+    <span class="s">"fecha_inicio"</span>:   <span class="s">"2023-11-01"</span>,
+    <span class="s">"fecha_fin"</span>:      <span class="s">"2024-03-31"</span>,  <span class="c"># temporada de incendios</span>
+
+    <span class="c"># Proyección oficial Chile continental</span>
+    <span class="s">"epsg"</span>:           <span class="s">"EPSG:5361"</span>,
+
+    <span class="c"># Archivos de salida</span>
+    <span class="s">"out_comunas_csv"</span>:  <span class="s">"indicadores_comunas.csv"</span>,
+    <span class="s">"out_regiones_csv"</span>: <span class="s">"indicadores_regiones.csv"</span>,
+    <span class="s">"out_shp"</span>:          <span class="s">"comunas_indicadores.shp"</span>,
+}</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASO 2 -->
+      <div class="paso-card" id="p2">
+        <div class="paso-header" onclick="togglePaso(this)">
+          <div class="paso-num">02</div>
+          <div class="paso-titulo">Cargar y reproyectar capas base</div>
+          <span class="paso-tag tag-qgis">PyQGIS</span>
+          <span class="paso-arrow">▼</span>
+        </div>
+        <div class="paso-body">
+          <div class="paso-desc">
+            Carga los shapefiles de comunas y regiones desde el disco y los <strong>reproyecta a UTM zona 19S</strong>.
+            Esto es crítico: sin reproyección, los cálculos de área en grados decimales son incorrectos
+            (los grados no tienen la misma distancia en metros en distintas latitudes).<br><br>
+            El parámetro <code>"OUTPUT": "memory:"</code> guarda la capa reproyectada en RAM,
+            sin escribir archivos temporales al disco.
+          </div>
+          <div class="code-block">
+            <div class="code-header">
+              <span class="code-lang">Python</span>
+              <button class="btn-copy" onclick="copiarBloque(this,'blk2')">Copiar</button>
+            </div>
+<pre id="blk2"><span class="k">from</span> <span class="n">qgis.core</span> <span class="k">import</span> <span class="n">QgsVectorLayer</span>, <span class="n">QgsCoordinateReferenceSystem</span>
+<span class="k">import</span> <span class="n">processing</span>
+
+<span class="k">def</span> <span class="f">cargar_capas</span>():
+    <span class="c"># 1. Leer shapefiles desde disco</span>
+    <span class="n">comunas</span>  <span class="op">=</span> <span class="n">QgsVectorLayer</span>(<span class="n">ruta</span>(<span class="n">CONFIG</span>[<span class="s">"comunas_shp"</span>]),  <span class="s">"comunas"</span>,  <span class="s">"ogr"</span>)
+    <span class="n">regiones</span> <span class="op">=</span> <span class="n">QgsVectorLayer</span>(<span class="n">ruta</span>(<span class="n">CONFIG</span>[<span class="s">"regiones_shp"</span>]), <span class="s">"regiones"</span>, <span class="s">"ogr"</span>)
+
+    <span class="k">if not</span> <span class="n">comunas</span>.<span class="f">isValid</span>():
+        <span class="k">raise</span> <span class="n">Exception</span>(<span class="s">f"No se pudo cargar: {ruta(CONFIG['comunas_shp'])}"</span>)
+
+    <span class="c"># 2. Reproyectar a SIRGAS 2000 / UTM Zona 19S (EPSG:5361)
+    #    Necesario para calcular áreas en km² correctamente</span>
+    <span class="n">epsg</span> <span class="op">=</span> <span class="n">CONFIG</span>[<span class="s">"epsg"</span>]
+
+    <span class="n">comunas_utm</span> <span class="op">=</span> <span class="n">processing</span>.<span class="f">run</span>(<span class="s">"native:reprojectlayer"</span>, {
+        <span class="s">"INPUT"</span>:      <span class="n">comunas</span>,
+        <span class="s">"TARGET_CRS"</span>: <span class="n">QgsCoordinateReferenceSystem</span>(<span class="n">epsg</span>),
+        <span class="s">"OUTPUT"</span>:     <span class="s">"memory:"</span>   <span class="c"># en RAM, sin archivo temporal</span>
+    })[<span class="s">"OUTPUT"</span>]
+
+    <span class="n">regiones_utm</span> <span class="op">=</span> <span class="n">processing</span>.<span class="f">run</span>(<span class="s">"native:reprojectlayer"</span>, {
+        <span class="s">"INPUT"</span>:      <span class="n">regiones</span>,
+        <span class="s">"TARGET_CRS"</span>: <span class="n">QgsCoordinateReferenceSystem</span>(<span class="n">epsg</span>),
+        <span class="s">"OUTPUT"</span>:     <span class="s">"memory:"</span>
+    })[<span class="s">"OUTPUT"</span>]
+
+    <span class="f">log</span>(<span class="s">f"Comunas: {comunas_utm.featureCount()} · Regiones: {regiones_utm.featureCount()}"</span>)
+    <span class="k">return</span> <span class="n">comunas_utm</span>, <span class="n">regiones_utm</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASO 3 -->
+      <div class="paso-card" id="p3">
+        <div class="paso-header" onclick="togglePaso(this)">
+          <div class="paso-num">03</div>
+          <div class="paso-titulo">Leer y filtrar puntos de calor NASA FIRMS</div>
+          <span class="paso-tag tag-data">CSV → Vectorial</span>
+          <span class="paso-arrow">▼</span>
+        </div>
+        <div class="paso-body">
+          <div class="paso-desc">
+            El CSV de NASA FIRMS contiene miles de filas — una por cada <strong>punto de calor detectado por satélite</strong>.
+            Cada fila es una detección de temperatura anómala, con su coordenada, fecha y nivel de confianza.<br><br>
+            Este paso <strong>filtra</strong> por período de análisis y confianza mínima (descartar falsas alarmas),
+            luego construye una capa vectorial de puntos en memoria y la reproyecta a UTM para el join espacial.
+          </div>
+          <div class="code-block">
+            <div class="code-header">
+              <span class="code-lang">Python</span>
+              <button class="btn-copy" onclick="copiarBloque(this,'blk3')">Copiar</button>
+            </div>
+<pre id="blk3"><span class="k">import</span> <span class="n">csv</span>, <span class="n">datetime</span>
+<span class="k">from</span> <span class="n">qgis.core</span> <span class="k">import</span> <span class="n">QgsVectorLayer</span>, <span class="n">QgsFeature</span>, <span class="n">QgsGeometry</span>, <span class="n">QgsPointXY</span>, <span class="n">QgsField</span>
+<span class="k">from</span> <span class="n">PyQt5.QtCore</span> <span class="k">import</span> <span class="n">QVariant</span>
+
+<span class="k">def</span> <span class="f">cargar_firms</span>():
+    <span class="c"># Crear capa de puntos vacía en memoria (WGS 84)</span>
+    <span class="n">capa</span> <span class="op">=</span> <span class="n">QgsVectorLayer</span>(<span class="s">"Point?crs=EPSG:4326"</span>, <span class="s">"firms"</span>, <span class="s">"memory"</span>)
+    <span class="n">prov</span> <span class="op">=</span> <span class="n">capa</span>.<span class="f">dataProvider</span>()
+    <span class="n">prov</span>.<span class="f">addAttributes</span>([
+        <span class="n">QgsField</span>(<span class="s">"fecha"</span>,     <span class="n">QVariant</span>.<span class="n">String</span>),
+        <span class="n">QgsField</span>(<span class="s">"confianza"</span>, <span class="n">QVariant</span>.<span class="n">Int</span>),
+        <span class="n">QgsField</span>(<span class="s">"frp"</span>,       <span class="n">QVariant</span>.<span class="n">Double</span>),
+    ])
+    <span class="n">capa</span>.<span class="f">updateFields</span>()
+
+    <span class="n">fecha_ini</span> <span class="op">=</span> <span class="n">datetime</span>.<span class="n">date</span>.<span class="f">fromisoformat</span>(<span class="n">CONFIG</span>[<span class="s">"fecha_inicio"</span>])
+    <span class="n">fecha_fin</span> <span class="op">=</span> <span class="n">datetime</span>.<span class="n">date</span>.<span class="f">fromisoformat</span>(<span class="n">CONFIG</span>[<span class="s">"fecha_fin"</span>])
+    <span class="n">conf_min</span>  <span class="op">=</span> <span class="n">CONFIG</span>[<span class="s">"confianza_minima"</span>]
+
+    <span class="n">features</span>, <span class="n">total</span>, <span class="n">ok</span> <span class="op">=</span> [], <span class="num">0</span>, <span class="num">0</span>
+
+    <span class="k">with</span> <span class="f">open</span>(<span class="n">ruta</span>(<span class="n">CONFIG</span>[<span class="s">"firms_csv"</span>]), <span class="s">"r"</span>, <span class="n">encoding</span><span class="op">=</span><span class="s">"utf-8"</span>) <span class="k">as</span> <span class="n">f</span>:
+        <span class="k">for</span> <span class="n">row</span> <span class="k">in</span> <span class="n">csv</span>.<span class="f">DictReader</span>(<span class="n">f</span>):
+            <span class="n">total</span> <span class="op">+=</span> <span class="num">1</span>
+            <span class="k">try</span>:
+                <span class="n">lat</span>   <span class="op">=</span> <span class="f">float</span>(<span class="n">row</span>[<span class="s">"latitude"</span>])
+                <span class="n">lon</span>   <span class="op">=</span> <span class="f">float</span>(<span class="n">row</span>[<span class="s">"longitude"</span>])
+                <span class="n">conf</span>  <span class="op">=</span> <span class="f">int</span>(<span class="n">row</span>.<span class="f">get</span>(<span class="s">"confidence"</span>, <span class="num">0</span>) <span class="k">or</span> <span class="num">0</span>)
+                <span class="n">frp</span>   <span class="op">=</span> <span class="f">float</span>(<span class="n">row</span>.<span class="f">get</span>(<span class="s">"frp"</span>, <span class="num">0</span>) <span class="k">or</span> <span class="num">0</span>)
+                <span class="n">fecha</span> <span class="op">=</span> <span class="n">datetime</span>.<span class="n">date</span>.<span class="f">fromisoformat</span>(<span class="n">row</span>[<span class="s">"acq_date"</span>])
+            <span class="k">except</span>: <span class="k">continue</span>
+
+            <span class="c"># Aplicar filtros de calidad y período</span>
+            <span class="k">if</span> <span class="n">conf</span> <span class="op">&lt;</span> <span class="n">conf_min</span>: <span class="k">continue</span>
+            <span class="k">if not</span> (<span class="n">fecha_ini</span> <span class="op">&lt;=</span> <span class="n">fecha</span> <span class="op">&lt;=</span> <span class="n">fecha_fin</span>): <span class="k">continue</span>
+
+            <span class="c"># Crear feature (punto geográfico)</span>
+            <span class="n">feat</span> <span class="op">=</span> <span class="n">QgsFeature</span>()
+            <span class="n">feat</span>.<span class="f">setGeometry</span>(<span class="n">QgsGeometry</span>.<span class="f">fromPointXY</span>(<span class="n">QgsPointXY</span>(<span class="n">lon</span>, <span class="n">lat</span>)))
+            <span class="n">feat</span>.<span class="f">setAttributes</span>([<span class="n">row</span>[<span class="s">"acq_date"</span>], <span class="n">conf</span>, <span class="n">frp</span>])
+            <span class="n">features</span>.<span class="f">append</span>(<span class="n">feat</span>)
+            <span class="n">ok</span> <span class="op">+=</span> <span class="num">1</span>
+
+    <span class="n">prov</span>.<span class="f">addFeatures</span>(<span class="n">features</span>)
+    <span class="n">capa</span>.<span class="f">updateExtents</span>()
+    <span class="f">log</span>(<span class="s">f"FIRMS: {total} filas → {ok} puntos válidos tras filtros"</span>)
+
+    <span class="c"># Reproyectar a UTM para join espacial consistente</span>
+    <span class="k">return</span> <span class="n">processing</span>.<span class="f">run</span>(<span class="s">"native:reprojectlayer"</span>,
+        {<span class="s">"INPUT"</span>: <span class="n">capa</span>, <span class="s">"TARGET_CRS"</span>: <span class="n">QgsCoordinateReferenceSystem</span>(<span class="n">CONFIG</span>[<span class="s">"epsg"</span>]),
+         <span class="s">"OUTPUT"</span>: <span class="s">"memory:"</span>})[<span class="s">"OUTPUT"</span>]</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASO 4 -->
+      <div class="paso-card" id="p4">
+        <div class="paso-header" onclick="togglePaso(this)">
+          <div class="paso-num">04</div>
+          <div class="paso-titulo">Join espacial — asignar cada foco a su comuna</div>
+          <span class="paso-tag tag-qgis">Geoproceso</span>
+          <span class="paso-arrow">▼</span>
+        </div>
+        <div class="paso-body">
+          <div class="paso-desc">
+            Aquí ocurre la operación geoespacial central: para cada punto de calor, determinar
+            en <strong>qué polígono comunal cae</strong>. El <code>QgsSpatialIndex</code> acelera
+            la búsqueda — en vez de comparar cada punto con las 346 comunas, primero descarta
+            todas las que están fuera del bounding box del punto (colisión de cajas) y solo
+            evalúa la intersección precisa para los candidatos restantes. Esto reduce el tiempo
+            de ~346× a ~2× comparaciones por punto.
+          </div>
+          <div class="code-block">
+            <div class="code-header">
+              <span class="code-lang">Python</span>
+              <button class="btn-copy" onclick="copiarBloque(this,'blk4')">Copiar</button>
+            </div>
+<pre id="blk4"><span class="k">from</span> <span class="n">qgis.core</span> <span class="k">import</span> <span class="n">QgsSpatialIndex</span>
+
+<span class="k">def</span> <span class="f">join_espacial</span>(<span class="n">firms_utm</span>, <span class="n">comunas_utm</span>):
+    <span class="c"># Índice espacial sobre polígonos comunales (búsqueda rápida)</span>
+    <span class="n">idx</span>          <span class="op">=</span> <span class="n">QgsSpatialIndex</span>(<span class="n">comunas_utm</span>.<span class="f">getFeatures</span>())
+    <span class="n">comunas_dict</span> <span class="op">=</span> {<span class="n">f</span>.<span class="f">id</span>(): <span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="k">in</span> <span class="n">comunas_utm</span>.<span class="f">getFeatures</span>()}
+
+    <span class="c"># Detectar nombres de campos (varían según versión del SHP de BCN)</span>
+    <span class="n">campos</span> <span class="op">=</span> [<span class="n">f</span>.<span class="f">name</span>().<span class="f">lower</span>() <span class="k">for</span> <span class="n">f</span> <span class="k">in</span> <span class="n">comunas_utm</span>.<span class="f">fields</span>()]
+    <span class="n">campo_com</span> <span class="op">=</span> <span class="f">next</span>((<span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="k">in</span> <span class="n">campos</span> <span class="k">if</span> <span class="s">"comuna"</span> <span class="k">in</span> <span class="n">c</span>), <span class="n">campos</span>[<span class="num">0</span>])
+    <span class="n">campo_reg</span> <span class="op">=</span> <span class="f">next</span>((<span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="k">in</span> <span class="n">campos</span> <span class="k">if</span> <span class="s">"region"</span> <span class="k">in</span> <span class="n">c</span>), <span class="s">"region"</span>)
+
+    <span class="c"># Inicializar diccionario de resultados por comuna</span>
+    <span class="n">resultado</span> <span class="op">=</span> {}
+    <span class="k">for</span> <span class="n">feat</span> <span class="k">in</span> <span class="n">comunas_utm</span>.<span class="f">getFeatures</span>():
+        <span class="n">resultado</span>[<span class="n">feat</span>.<span class="f">id</span>()] <span class="op">=</span> {
+            <span class="s">"nombre_comuna"</span>: <span class="n">feat</span>[<span class="n">campo_com</span>],
+            <span class="s">"nombre_region"</span>: <span class="n">feat</span>[<span class="n">campo_reg</span>] <span class="k">if</span> <span class="n">campo_reg</span> <span class="k">in</span> <span class="n">campos</span> <span class="k">else</span> <span class="s">"N/D"</span>,
+            <span class="s">"area_km2"</span>:      <span class="n">feat</span>.<span class="f">geometry</span>().<span class="f">area</span>() <span class="op">/</span> <span class="num">1_000_000</span>,  <span class="c"># m² → km²</span>
+            <span class="s">"puntos"</span>:        []
+        }
+
+    <span class="c"># Asignar cada punto FIRMS a su comuna</span>
+    <span class="n">asignados</span> <span class="op">=</span> <span class="num">0</span>
+    <span class="k">for</span> <span class="n">pt</span> <span class="k">in</span> <span class="n">firms_utm</span>.<span class="f">getFeatures</span>():
+        <span class="n">geom</span> <span class="op">=</span> <span class="n">pt</span>.<span class="f">geometry</span>()
+        <span class="c"># Paso 1: candidatos por bounding box (rápido)</span>
+        <span class="k">for</span> <span class="n">fid</span> <span class="k">in</span> <span class="n">idx</span>.<span class="f">intersects</span>(<span class="n">geom</span>.<span class="f">boundingBox</span>()):
+            <span class="c"># Paso 2: intersección precisa del polígono</span>
+            <span class="k">if</span> <span class="n">comunas_dict</span>[<span class="n">fid</span>].<span class="f">geometry</span>().<span class="f">contains</span>(<span class="n">geom</span>):
+                <span class="n">resultado</span>[<span class="n">fid</span>][<span class="s">"puntos"</span>].<span class="f">append</span>(<span class="n">pt</span>)
+                <span class="n">asignados</span> <span class="op">+=</span> <span class="num">1</span>
+                <span class="k">break</span>  <span class="c"># un punto cae en una sola comuna</span>
+
+    <span class="f">log</span>(<span class="s">f"Puntos asignados: {asignados}/{firms_utm.featureCount()}"</span>)
+    <span class="k">return</span> <span class="n">resultado</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASO 5 -->
+      <div class="paso-card" id="p5">
+        <div class="paso-header" onclick="togglePaso(this)">
+          <div class="paso-num">05</div>
+          <div class="paso-titulo">Calcular los 6 indicadores por comuna</div>
+          <span class="paso-tag tag-data">Análisis</span>
+          <span class="paso-arrow">▼</span>
+        </div>
+        <div class="paso-body">
+          <div class="paso-desc">
+            Con los puntos ya asignados a cada comuna, se calculan los <strong>6 indicadores</strong>
+            que verás en la tabla del visor.<br><br>
+            · <code>n_focos</code> — total de detecciones satelitales<br>
+            · <code>frp_total_mw</code> — energía acumulada del fuego (proxy de destrucción)<br>
+            · <code>frp_prom_mw</code> — intensidad media por evento<br>
+            · <code>densidad_focos_x100km2</code> — normaliza por superficie (compara comunas pequeñas y grandes)<br>
+            · <code>mes_peak</code> — mes del año con más actividad (útil para estacionalidad)<br>
+            · <code>dias_con_focos</code> — duración del período de riesgo
+          </div>
+          <div class="code-block">
+            <div class="code-header">
+              <span class="code-lang">Python</span>
+              <button class="btn-copy" onclick="copiarBloque(this,'blk5')">Copiar</button>
+            </div>
+<pre id="blk5"><span class="k">def</span> <span class="f">calcular_indicadores</span>(<span class="n">resultado</span>):
+    <span class="n">indicadores</span> <span class="op">=</span> []
+
+    <span class="k">for</span> <span class="n">fid</span>, <span class="n">data</span> <span class="k">in</span> <span class="n">resultado</span>.<span class="f">items</span>():
+        <span class="n">puntos</span> <span class="op">=</span> <span class="n">data</span>[<span class="s">"puntos"</span>]
+        <span class="n">n</span>      <span class="op">=</span> <span class="f">len</span>(<span class="n">puntos</span>)
+        <span class="n">area</span>   <span class="op">=</span> <span class="n">data</span>[<span class="s">"area_km2"</span>]
+
+        <span class="k">if</span> <span class="n">n</span> <span class="op">==</span> <span class="num">0</span>:
+            <span class="n">frp_total</span> <span class="op">=</span> <span class="n">frp_prom</span> <span class="op">=</span> <span class="n">densidad</span> <span class="op">=</span> <span class="num">0.0</span>
+            <span class="n">mes_peak</span>  <span class="op">=</span> <span class="s">"N/A"</span>
+            <span class="n">dias</span>      <span class="op">=</span> <span class="num">0</span>
+        <span class="k">else</span>:
+            <span class="n">frps</span>      <span class="op">=</span> [<span class="n">p</span>[<span class="s">"frp"</span>]   <span class="k">for</span> <span class="n">p</span> <span class="k">in</span> <span class="n">puntos</span>]
+            <span class="n">fechas</span>    <span class="op">=</span> [<span class="n">p</span>[<span class="s">"fecha"</span>] <span class="k">for</span> <span class="n">p</span> <span class="k">in</span> <span class="n">puntos</span>]
+
+            <span class="n">frp_total</span> <span class="op">=</span> <span class="f">round</span>(<span class="f">sum</span>(<span class="n">frps</span>), <span class="num">2</span>)
+            <span class="n">frp_prom</span>  <span class="op">=</span> <span class="f">round</span>(<span class="n">frp_total</span> <span class="op">/</span> <span class="n">n</span>, <span class="num">2</span>)
+            <span class="n">densidad</span>  <span class="op">=</span> <span class="f">round</span>((<span class="n">n</span> <span class="op">/</span> <span class="n">area</span>) <span class="op">*</span> <span class="num">100</span>, <span class="num">4</span>) <span class="k">if</span> <span class="n">area</span> <span class="op">&gt;</span> <span class="num">0</span> <span class="k">else</span> <span class="num">0</span>
+
+            <span class="c"># Mes con más focos (1 = enero, 12 = diciembre)</span>
+            <span class="n">meses</span> <span class="op">=</span> {}
+            <span class="k">for</span> <span class="n">f</span> <span class="k">in</span> <span class="n">fechas</span>:
+                <span class="n">m</span> <span class="op">=</span> <span class="n">datetime</span>.<span class="n">date</span>.<span class="f">fromisoformat</span>(<span class="n">f</span>).<span class="n">month</span>
+                <span class="n">meses</span>[<span class="n">m</span>] <span class="op">=</span> <span class="n">meses</span>.<span class="f">get</span>(<span class="n">m</span>, <span class="num">0</span>) <span class="op">+</span> <span class="num">1</span>
+            <span class="n">mes_peak</span> <span class="op">=</span> <span class="f">max</span>(<span class="n">meses</span>, <span class="n">key</span><span class="op">=</span><span class="n">meses</span>.<span class="f">get</span>)
+
+            <span class="n">dias</span> <span class="op">=</span> <span class="f">len</span>(<span class="f">set</span>(<span class="n">fechas</span>))  <span class="c"># días únicos con al menos un foco</span>
+
+        <span class="n">indicadores</span>.<span class="f">append</span>({
+            <span class="s">"nombre_comuna"</span>:           <span class="n">data</span>[<span class="s">"nombre_comuna"</span>],
+            <span class="s">"nombre_region"</span>:           <span class="n">data</span>[<span class="s">"nombre_region"</span>],
+            <span class="s">"area_km2"</span>:                <span class="f">round</span>(<span class="n">area</span>, <span class="num">2</span>),
+            <span class="s">"n_focos"</span>:                 <span class="n">n</span>,
+            <span class="s">"frp_total_mw"</span>:            <span class="n">frp_total</span>,
+            <span class="s">"frp_prom_mw"</span>:             <span class="n">frp_prom</span>,
+            <span class="s">"densidad_focos_x100km2"</span>:  <span class="n">densidad</span>,
+            <span class="s">"mes_peak"</span>:                <span class="n">mes_peak</span>,
+            <span class="s">"dias_con_focos"</span>:          <span class="n">dias</span>,
+            <span class="s">"_fid"</span>:                    <span class="n">fid</span>,
+        })
+
+    <span class="k">return</span> <span class="n">indicadores</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASO 6 -->
+      <div class="paso-card" id="p6">
+        <div class="paso-header" onclick="togglePaso(this)">
+          <div class="paso-num">06</div>
+          <div class="paso-titulo">Agregar indicadores a nivel regional</div>
+          <span class="paso-tag tag-data">Agregación</span>
+          <span class="paso-arrow">▼</span>
+        </div>
+        <div class="paso-body">
+          <div class="paso-desc">
+            Suma y promedia los indicadores comunales para obtener una visión regional.
+            El indicador clave aquí es <code>pct_comunas_afectadas</code>: qué porcentaje
+            de comunas de la región tuvo al menos un foco. Permite comparar regiones
+            grandes con muchas comunas versus regiones pequeñas.
+          </div>
+          <div class="code-block">
+            <div class="code-header">
+              <span class="code-lang">Python</span>
+              <button class="btn-copy" onclick="copiarBloque(this,'blk6')">Copiar</button>
+            </div>
+<pre id="blk6"><span class="k">def</span> <span class="f">agregar_por_region</span>(<span class="n">ind</span>):
+    <span class="n">reg</span> <span class="op">=</span> {}
+    <span class="k">for</span> <span class="n">row</span> <span class="k">in</span> <span class="n">ind</span>:
+        <span class="n">r</span> <span class="op">=</span> <span class="n">row</span>[<span class="s">"nombre_region"</span>]
+        <span class="k">if</span> <span class="n">r</span> <span class="k">not in</span> <span class="n">reg</span>:
+            <span class="n">reg</span>[<span class="n">r</span>] <span class="op">=</span> {<span class="s">"nombre_region"</span>:<span class="n">r</span>, <span class="s">"n_comunas"</span>:<span class="num">0</span>,
+                       <span class="s">"com_afect"</span>:<span class="num">0</span>, <span class="s">"n_focos"</span>:<span class="num">0</span>,
+                       <span class="s">"frp_total"</span>:<span class="num">0.0</span>, <span class="s">"area"</span>:<span class="num">0.0</span>}
+        <span class="n">d</span> <span class="op">=</span> <span class="n">reg</span>[<span class="n">r</span>]
+        <span class="n">d</span>[<span class="s">"n_comunas"</span>] <span class="op">+=</span> <span class="num">1</span>
+        <span class="n">d</span>[<span class="s">"n_focos"</span>]   <span class="op">+=</span> <span class="n">row</span>[<span class="s">"n_focos"</span>]
+        <span class="n">d</span>[<span class="s">"frp_total"</span>] <span class="op">+=</span> <span class="n">row</span>[<span class="s">"frp_total_mw"</span>]
+        <span class="n">d</span>[<span class="s">"area"</span>]      <span class="op">+=</span> <span class="n">row</span>[<span class="s">"area_km2"</span>]
+        <span class="k">if</span> <span class="n">row</span>[<span class="s">"n_focos"</span>] <span class="op">&gt;</span> <span class="num">0</span>: <span class="n">d</span>[<span class="s">"com_afect"</span>] <span class="op">+=</span> <span class="num">1</span>
+
+    <span class="k">for</span> <span class="n">d</span> <span class="k">in</span> <span class="n">reg</span>.<span class="f">values</span>():
+        <span class="n">d</span>[<span class="s">"densidad"</span>]    <span class="op">=</span> <span class="f">round</span>(<span class="n">d</span>[<span class="s">"n_focos"</span>]<span class="op">/</span><span class="n">d</span>[<span class="s">"area"</span>]<span class="op">*</span><span class="num">100</span>,<span class="num">4</span>) <span class="k">if</span> <span class="n">d</span>[<span class="s">"area"</span>] <span class="k">else</span> <span class="num">0</span>
+        <span class="n">d</span>[<span class="s">"pct_afect"</span>]   <span class="op">=</span> <span class="f">round</span>(<span class="n">d</span>[<span class="s">"com_afect"</span>]<span class="op">/</span><span class="n">d</span>[<span class="s">"n_comunas"</span>]<span class="op">*</span><span class="num">100</span>,<span class="num">1</span>) <span class="k">if</span> <span class="n">d</span>[<span class="s">"n_comunas"</span>] <span class="k">else</span> <span class="num">0</span>
+
+    <span class="k">return</span> <span class="f">list</span>(<span class="n">reg</span>.<span class="f">values</span>())</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASO 7 -->
+      <div class="paso-card" id="p7">
+        <div class="paso-header" onclick="togglePaso(this)">
+          <div class="paso-num">07</div>
+          <div class="paso-titulo">Exportar CSV + Shapefile y cargar en QGIS</div>
+          <span class="paso-tag tag-output">Output</span>
+          <span class="paso-arrow">▼</span>
+        </div>
+        <div class="paso-body">
+          <div class="paso-desc">
+            Genera 3 archivos: dos CSV listos para subir a este visor y un Shapefile que
+            se <strong>carga automáticamente en QGIS</strong> con los indicadores como campos nuevos.
+            Desde QGIS puedes aplicar simbología graduada por cualquier indicador y generar mapas.<br><br>
+            El CSV <code>indicadores_comunas.csv</code> es el que debes arrastrar a la pestaña
+            <strong>🔥 Incendios FIRMS</strong> de este visor para ver tu análisis propio.
+          </div>
+          <div class="code-block">
+            <div class="code-header">
+              <span class="code-lang">Python</span>
+              <button class="btn-copy" onclick="copiarBloque(this,'blk7')">Copiar</button>
+            </div>
+<pre id="blk7"><span class="k">import</span> <span class="n">csv</span>, <span class="n">os</span>
+<span class="k">from</span> <span class="n">qgis.core</span> <span class="k">import</span> <span class="n">QgsVectorFileWriter</span>, <span class="n">QgsProject</span>
+
+<span class="k">def</span> <span class="f">exportar</span>(<span class="n">ind_comunas</span>, <span class="n">ind_regiones</span>, <span class="n">comunas_utm</span>):
+    <span class="c"># ── CSV comunas ──</span>
+    <span class="n">campos</span> <span class="op">=</span> [<span class="s">"nombre_comuna"</span>,<span class="s">"nombre_region"</span>,<span class="s">"area_km2"</span>,<span class="s">"n_focos"</span>,
+              <span class="s">"frp_total_mw"</span>,<span class="s">"frp_prom_mw"</span>,<span class="s">"densidad_focos_x100km2"</span>,
+              <span class="s">"mes_peak"</span>,<span class="s">"dias_con_focos"</span>]
+    <span class="k">with</span> <span class="f">open</span>(<span class="n">ruta</span>(<span class="s">"indicadores_comunas.csv"</span>), <span class="s">"w"</span>,
+               <span class="n">newline</span><span class="op">=</span><span class="s">""</span>, <span class="n">encoding</span><span class="op">=</span><span class="s">"utf-8-sig"</span>) <span class="k">as</span> <span class="n">f</span>:
+        <span class="n">w</span> <span class="op">=</span> <span class="n">csv</span>.<span class="f">DictWriter</span>(<span class="n">f</span>, <span class="n">fieldnames</span><span class="op">=</span><span class="n">campos</span>, <span class="n">extrasaction</span><span class="op">=</span><span class="s">"ignore"</span>)
+        <span class="n">w</span>.<span class="f">writeheader</span>()
+        <span class="n">w</span>.<span class="f">writerows</span>(<span class="n">ind_comunas</span>)
+
+    <span class="c"># ── Shapefile enriquecido ──</span>
+    <span class="c"># Agregar campos de indicadores al shapefile de comunas</span>
+    <span class="n">capa_out</span> <span class="op">=</span> <span class="n">comunas_utm</span>.<span class="f">materialize</span>(<span class="n">QgsFeatureRequest</span>())
+    <span class="n">capa_out</span>.<span class="f">dataProvider</span>().<span class="f">addAttributes</span>([
+        <span class="n">QgsField</span>(<span class="s">"n_focos"</span>,   <span class="n">QVariant</span>.<span class="n">Int</span>),
+        <span class="n">QgsField</span>(<span class="s">"frp_tot"</span>,   <span class="n">QVariant</span>.<span class="n">Double</span>),
+        <span class="n">QgsField</span>(<span class="s">"densidad"</span>,  <span class="n">QVariant</span>.<span class="n">Double</span>),
+        <span class="n">QgsField</span>(<span class="s">"mes_peak"</span>,  <span class="n">QVariant</span>.<span class="n">Int</span>),
+    ])
+    <span class="n">capa_out</span>.<span class="f">updateFields</span>()
+
+    <span class="n">idx_ind</span> <span class="op">=</span> {<span class="n">r</span>[<span class="s">"_fid"</span>]: <span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="k">in</span> <span class="n">ind_comunas</span>}
+    <span class="n">capa_out</span>.<span class="f">startEditing</span>()
+    <span class="k">for</span> <span class="n">feat</span> <span class="k">in</span> <span class="n">capa_out</span>.<span class="f">getFeatures</span>():
+        <span class="n">d</span> <span class="op">=</span> <span class="n">idx_ind</span>.<span class="f">get</span>(<span class="n">feat</span>.<span class="f">id</span>(), {})
+        <span class="n">feat</span>[<span class="s">"n_focos"</span>]  <span class="op">=</span> <span class="n">d</span>.<span class="f">get</span>(<span class="s">"n_focos"</span>, <span class="num">0</span>)
+        <span class="n">feat</span>[<span class="s">"frp_tot"</span>]  <span class="op">=</span> <span class="n">d</span>.<span class="f">get</span>(<span class="s">"frp_total_mw"</span>, <span class="num">0.0</span>)
+        <span class="n">feat</span>[<span class="s">"densidad"</span>] <span class="op">=</span> <span class="n">d</span>.<span class="f">get</span>(<span class="s">"densidad_focos_x100km2"</span>, <span class="num">0.0</span>)
+        <span class="n">feat</span>[<span class="s">"mes_peak"</span>] <span class="op">=</span> <span class="f">int</span>(<span class="n">d</span>.<span class="f">get</span>(<span class="s">"mes_peak"</span>, <span class="num">0</span>) <span class="k">or</span> <span class="num">0</span>)
+        <span class="n">capa_out</span>.<span class="f">updateFeature</span>(<span class="n">feat</span>)
+    <span class="n">capa_out</span>.<span class="f">commitChanges</span>()
+
+    <span class="c"># Guardar SHP y agregar al proyecto QGIS</span>
+    <span class="n">ruta_shp</span> <span class="op">=</span> <span class="n">ruta</span>(<span class="s">"comunas_indicadores.shp"</span>)
+    <span class="n">QgsVectorFileWriter</span>.<span class="f">writeAsVectorFormat</span>(
+        <span class="n">capa_out</span>, <span class="n">ruta_shp</span>, <span class="s">"utf-8"</span>,
+        <span class="n">QgsCoordinateReferenceSystem</span>(<span class="n">CONFIG</span>[<span class="s">"epsg"</span>]), <span class="s">"ESRI Shapefile"</span>)
+
+    <span class="n">QgsProject</span>.<span class="f">instance</span>().<span class="f">addMapLayer</span>(
+        <span class="n">QgsVectorLayer</span>(<span class="n">ruta_shp</span>, <span class="s">"Comunas — Indicadores Incendios"</span>, <span class="s">"ogr"</span>))
+
+    <span class="f">log</span>(<span class="s">"✅ Outputs generados en: "</span> <span class="op">+</span> <span class="n">CONFIG</span>[<span class="s">"dir_base"</span>])</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- DIAGRAMA FLUJO -->
+      <div class="card" style="margin-top:0.5rem">
+        <div class="card-title">🔄 Flujo completo del script</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:0.5rem;margin-top:0.5rem">
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:0.7rem;text-align:center;font-size:11px">
+            <div style="font-size:1.2rem">📥</div>
+            <div style="color:var(--cian);font-family:var(--mono);margin:3px 0">ENTRADA</div>
+            <div style="color:var(--t2)">SHP comunas<br>CSV FIRMS</div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:18px">→</div>
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:0.7rem;text-align:center;font-size:11px">
+            <div style="font-size:1.2rem">🔄</div>
+            <div style="color:var(--r0);font-family:var(--mono);margin:3px 0">PROCESO</div>
+            <div style="color:var(--t2)">Reproyectar<br>Filtrar<br>Join espacial</div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:18px">→</div>
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:0.7rem;text-align:center;font-size:11px">
+            <div style="font-size:1.2rem">📊</div>
+            <div style="color:var(--r1);font-family:var(--mono);margin:3px 0">CÁLCULO</div>
+            <div style="color:var(--t2)">6 indicadores<br>por comuna</div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:18px">→</div>
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:0.7rem;text-align:center;font-size:11px">
+            <div style="font-size:1.2rem">📤</div>
+            <div style="color:var(--r2);font-family:var(--mono);margin:3px 0">OUTPUT</div>
+            <div style="color:var(--t2)">2 CSV<br>1 Shapefile<br>Capa QGIS</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- fin script-main -->
+  </div><!-- fin script-layout -->
+</section>
+
+</main>
+
+<footer>
+  RIESGOSCL · Monitor geoespacial de riesgos meteorológicos para Chile &nbsp;·&nbsp;
+  <a href="https://open-meteo.com" target="_blank">Open-Meteo</a> CC BY 4.0 &nbsp;·&nbsp;
+  <a href="https://firms.modaps.eosdis.nasa.gov" target="_blank">NASA FIRMS</a> &nbsp;·&nbsp;
+  <a href="https://www.conaf.cl" target="_blank">CONAF</a> &nbsp;·&nbsp;
+  Código en <a href="https://github.com" target="_blank">GitHub</a>
+</footer>
+
+<!-- ══════════════════════════════ JS ══════════════════════════════ -->
+<script>
+// ────────────────────────────────
+// ESTADO GLOBAL
+// ────────────────────────────────
+let apiData   = null;
+let mapaInst  = null;
+let mapaLayer = 'alertas';
+let marcadores = { alertas:[], focos:[] };
+let charts    = {};
+let histMode  = 'lluvia';
+let comunasData = [];
+let zonasDatos  = [];
+
+// ────────────────────────────────
+// ZONAS DE MONITOREO
+// ────────────────────────────────
+let ZONAS = [
+  {n:"Antofagasta",  reg:"Antofagasta",   lat:-23.65, lng:-70.40},
+  {n:"Coquimbo",     reg:"Coquimbo",      lat:-29.91, lng:-71.25},
+  {n:"Valparaíso",   reg:"Valparaíso",    lat:-33.03, lng:-71.63},
+  {n:"Santiago",     reg:"Metropolitana", lat:-33.45, lng:-70.67},
+  {n:"Rancagua",     reg:"O'Higgins",     lat:-34.17, lng:-70.74},
+  {n:"Talca",        reg:"Maule",         lat:-35.43, lng:-71.67},
+  {n:"Concepción",   reg:"Biobío",        lat:-36.82, lng:-73.05},
+  {n:"Temuco",       reg:"La Araucanía",  lat:-38.74, lng:-72.60},
+  {n:"Valdivia",     reg:"Los Ríos",      lat:-39.81, lng:-73.24},
+  {n:"Puerto Montt", reg:"Los Lagos",     lat:-41.47, lng:-72.94},
+  {n:"Coyhaique",    reg:"Aysén",         lat:-45.57, lng:-72.07},
+  {n:"Punta Arenas", reg:"Magallanes",    lat:-53.16, lng:-70.91},
+];
+
+// Demo focos incendio
+const DEMO_FOCOS = [
+  {lat:-35.44,lng:-71.26,frp:72},{lat:-36.88,lng:-72.01,frp:45},
+  {lat:-37.47,lng:-72.33,frp:89},{lat:-34.58,lng:-71.20,frp:38},
+  {lat:-33.48,lng:-70.93,frp:28},{lat:-36.12,lng:-71.60,frp:61},
+  {lat:-38.24,lng:-72.69,frp:52},{lat:-35.86,lng:-71.95,frp:44},
+  {lat:-33.81,lng:-70.74,frp:31},{lat:-33.05,lng:-71.44,frp:67},
+  {lat:-38.78,lng:-72.41,frp:39},{lat:-35.67,lng:-71.47,frp:55},
+];
+
+// ────────────────────────────────
+// UTILIDADES
+// ────────────────────────────────
+function getZona() {
+  const v = document.getElementById('zona-sel').value.split(',');
+  return {lat:parseFloat(v[0]), lng:parseFloat(v[1]), nombre:v[2]};
+}
+function cambiarZona() { cargarTodo(); }
+
+// Mezcla las zonas guardadas en localStorage dentro del array ZONAS
+// para que aparezcan en el mapa y en la tabla con estilo distintivo.
+function sincronizarZonasUsuario() {
+  let arr = [];
+  try { arr = JSON.parse(localStorage.getItem('geohub_riesgos_ciudades_v1') || '[]'); }
+  catch { arr = []; }
+  // Quitar las _user previas para evitar duplicados al re-sincronizar
+  ZONAS = ZONAS.filter(z => !z._user);
+  arr.forEach(c => {
+    const dup = ZONAS.some(z =>
+      Math.abs(z.lat - c.lat) < 1e-5 && Math.abs(z.lng - c.lng) < 1e-5
+    );
+    if (!dup) ZONAS.push({ n: c.nombre, reg: 'Custom', lat: c.lat, lng: c.lng, _user: true });
+  });
+}
+// Sincronizar al cargar
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', sincronizarZonasUsuario);
+} else {
+  sincronizarZonasUsuario();
+}
+
+function showTab(id, btn) {
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  if (id==='mapa') { setTimeout(()=>{ initMapa(); mapaInst.invalidateSize(); },120); }
+  if (id==='historial') initHistorial();
+}
+
+function nivel(temp, ll6h, nieve, viento) {
+  if (ll6h>60||temp<-8||nieve>20||viento>90) return 3;
+  if (ll6h>30||temp<0 ||nieve>5 ||viento>60) return 2;
+  if (ll6h>10||temp<4 ||nieve>1 ||viento>40) return 1;
+  return 0;
+}
+const COL = ['#1db954','#f5c518','#f4820a','#e63946'];
+const LAB = ['Sin alerta','Amarilla','Naranja','Roja 🔴'];
+const BNC = ['bn0','bn1','bn2','bn3'];
+
+function fmt(n) {
+  if(n>=1e6) return (n/1e6).toFixed(1)+'M';
+  if(n>=1e3) return (n/1e3).toFixed(1)+'K';
+  return Math.round(n).toLocaleString('es-CL');
+}
+
+// ────────────────────────────────
+// API OPEN-METEO
+// ────────────────────────────────
+async function fetchMeteo(lat,lng) {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}` +
+    `&current=temperature_2m,relative_humidity_2m,precipitation,snowfall,wind_speed_10m,weather_code` +
+    `&hourly=temperature_2m,precipitation,snowfall,wind_speed_10m` +
+    `&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum,wind_speed_10m_max,weather_code` +
+    `&timezone=America%2FSantiago&forecast_days=7&past_days=1`;
+  const r = await fetch(url);
+  if(!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+// ────────────────────────────────
+// CARGA PRINCIPAL
+// ────────────────────────────────
+async function cargarTodo() {
+  const z = getZona();
+  document.getElementById('hora-update').textContent = 'Cargando…';
+  document.getElementById('chips').innerHTML = '<div class="spin" style="grid-column:1/-1"><div class="spin-c"></div>Consultando Open-Meteo…</div>';
+  document.getElementById('rings').innerHTML = '<div class="spin"><div class="spin-c"></div></div>';
+
+  try {
+    const d = await fetchMeteo(z.lat, z.lng);
+    apiData = d;
+    renderBanner(d);
+    renderChips(d, z.nombre);
+    renderCharts24(d);
+    renderRings(d);
+    renderPronostico(d);
+    cargarZonas();
+    const h = new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('hora-update').textContent = h;
+  } catch(e) {
+    document.getElementById('chips').innerHTML =
+      `<div style="grid-column:1/-1;padding:1.5rem;text-align:center;color:var(--r3)">
+        ⚠️ Error conectando con Open-Meteo API<br>
+        <small style="color:var(--t3)">${e.message} · Verifica tu conexión</small>
+      </div>`;
+    document.getElementById('hora-update').textContent = 'Error';
+  }
+}
+
+// ────────────────────────────────
+// BANNER
+// ────────────────────────────────
+function renderBanner(d) {
+  const c = d.current;
+  const n = nivel(c.temperature_2m, c.precipitation*6, c.snowfall, c.wind_speed_10m);
+  const msgs = [
+    '✅ Condiciones normales — sin alertas activas en la zona seleccionada.',
+    '⚠️ Alerta Amarilla — condiciones adversas moderadas. Manténgase informado.',
+    '🟠 Alerta Naranja — riesgo considerable. Tome precauciones y evite zonas expuestas.',
+    '🔴 Alerta Roja — peligro inminente. Siga instrucciones de SENAPRED y su municipio.',
+  ];
+  const cls = ['ab-r0','ab-r1','ab-r2','ab-r3'];
+  document.getElementById('banner-alerta').innerHTML =
+    `<div class="alert-banner ${cls[n]}">${msgs[n]}</div>`;
+}
+
+// ────────────────────────────────
+// CHIPS
+// ────────────────────────────────
+function renderChips(d, nombre) {
+  const c = d.current;
+  const temp   = c.temperature_2m;
+  const prec   = c.precipitation;
+  const ll6    = prec * 6;
+  const nieve  = c.snowfall;
+  const viento = c.wind_speed_10m;
+  const n      = nivel(temp, ll6, nieve, viento);
+
+  const chips = [
+    {tipo:'fuego',  ico:'🔥', lbl:'Riesgo incendio',  val:'—',  sub:'Sin datos FIRMS en tiempo real', pct:0, color:'var(--fuego)'},
+    {tipo:'lluvia', ico:'🌧️', lbl:'Precipitación',    val:`${prec?.toFixed(1)} mm/h`, sub:`Acum. 6h: ~${ll6.toFixed(0)} mm`,
+      pct:Math.min(100,ll6/60*100), color:'var(--lluvia)'},
+    {tipo:'helada', ico:'🌡️', lbl:'Temperatura',      val:`${temp?.toFixed(1)}°C`,
+      sub:temp<0?'⚠️ Bajo cero — helada':temp<4?'Riesgo helada nocturna':'Sin riesgo helada',
+      pct:temp<0?Math.min(100,Math.abs(temp/10)*100):Math.max(0,(4-temp)/4*30), color:'var(--helada)'},
+    {tipo:'nieve',  ico:'❄️', lbl:'Nevazón',          val:`${nieve?.toFixed(1)} cm`,
+      sub:nieve>0.5?'⚠️ Nieve activa':'Sin nevazón', pct:Math.min(100,nieve/20*100), color:'var(--nieve)'},
+    {tipo:'viento', ico:'💨', lbl:'Viento',            val:`${Math.round(viento)} km/h`,
+      sub:viento>60?'⚠️ Temporal':viento>40?'Viento moderado':'Normal',
+      pct:Math.min(100,viento/90*100), color:'var(--viento)'},
+    {tipo:'alerta', ico:'📊', lbl:'Alerta global',     val:LAB[n],
+      sub:nombre, pct:n/3*100, color:COL[n]},
+  ];
+
+  document.getElementById('chips').innerHTML = chips.map(ch => `
+    <div class="chip chip-${ch.tipo}">
+      <div class="chip-header">${ch.ico} ${ch.lbl}</div>
+      <div class="chip-val">${ch.val}</div>
+      <div class="chip-sub">${ch.sub}</div>
+      <div class="chip-bar">
+        <div class="chip-fill" style="width:${ch.pct.toFixed(0)}%;background:${ch.color}"></div>
+      </div>
+    </div>`).join('');
+}
+
+// ────────────────────────────────
+// CHARTS 24H
+// ────────────────────────────────
+const CO = {
+  responsive:true, maintainAspectRatio:false,
+  plugins:{legend:{display:false}},
+  scales:{
+    x:{ticks:{color:'#4a6580',font:{size:9}}, grid:{color:'rgba(255,255,255,0.03)'}},
+    y:{ticks:{color:'#4a6580',font:{size:9}}, grid:{color:'rgba(255,255,255,0.03)'}}
+  }
+};
+
+function mkChart(id,type,labels,datasets,opts={}) {
+  if(charts[id]) charts[id].destroy();
+  charts[id] = new Chart(document.getElementById(id),{
+    type, data:{labels,datasets},
+    options:{...CO,...opts, scales:{...CO.scales,...(opts.scales||{})}}
+  });
+}
+
+function renderCharts24(d) {
+  const now = new Date();
+  const idx = Math.max(0, d.hourly.time.findIndex(t=>new Date(t)>=now)-2);
+  const sl  = a => a.slice(idx, idx+24);
+  const lab = sl(d.hourly.time).map(t=>t.slice(11,16));
+
+  mkChart('c-temp','line',lab,[{
+    data:sl(d.hourly.temperature_2m),
+    borderColor:'#7ec8e3',backgroundColor:'rgba(126,200,227,0.08)',
+    borderWidth:2,fill:true,tension:0.3,pointRadius:0
+  }]);
+
+  const llv = sl(d.hourly.precipitation);
+  mkChart('c-lluvia','bar',lab,[{
+    data:llv,
+    backgroundColor:llv.map(v=>v>10?'#e6394680':v>3?'#f4820a80':'#4cc9f060'),
+    borderRadius:2
+  }]);
+
+  const wv = sl(d.hourly.wind_speed_10m);
+  mkChart('c-viento','line',lab,[{
+    data:wv,
+    borderColor:'#8d99ae',backgroundColor:'rgba(141,153,174,0.08)',
+    borderWidth:2,fill:true,tension:0.3,pointRadius:0,
+  }]);
+}
+
+// ────────────────────────────────
+// ANILLOS
+// ────────────────────────────────
+function renderRings(d) {
+  const c = d.current;
+  const pL = Math.min(100,(c.precipitation*6)/60*100);
+  const pH = c.temperature_2m<0?Math.min(100,Math.abs(c.temperature_2m/10)*100):Math.max(0,(4-c.temperature_2m)/4*30);
+  const pN = Math.min(100,c.snowfall/20*100);
+  const pV = Math.min(100,c.wind_speed_10m/90*100);
+  const pF = 0; // sin datos FIRMS live
+
+  const anillos = [
+    {v:pF,l:'Incendio',  col:'var(--fuego)'},
+    {v:pL,l:'Lluvia',    col:'var(--lluvia)'},
+    {v:pH,l:'Helada',    col:'var(--helada)'},
+    {v:pN,l:'Nieve',     col:'var(--nieve)'},
+    {v:pV,l:'Viento',    col:'var(--viento)'},
+  ];
+  const R=38, C=2*Math.PI*R;
+  document.getElementById('rings').innerHTML = anillos.map(a=>{
+    const d=(a.v/100*C).toFixed(1);
+    return `<div class="ring">
+      <svg width="100" height="100" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="${R}" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="7"/>
+        <circle cx="50" cy="50" r="${R}" fill="none" stroke="${a.col}" stroke-width="7"
+          stroke-dasharray="${d} ${C.toFixed(1)}" stroke-linecap="round"/>
+      </svg>
+      <div class="ring-inner">
+        <div class="ring-num">${Math.round(a.v)}</div>
+        <div class="ring-lbl">${a.l}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ────────────────────────────────
+// PRONÓSTICO 7 DÍAS
+// ────────────────────────────────
+const DS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+const WMO = {0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',
+  51:'🌦️',53:'🌦️',55:'🌧️',61:'🌧️',63:'🌧️',65:'🌧️',
+  71:'❄️',73:'❄️',75:'❄️',77:'🌨️',80:'🌦️',81:'🌧️',82:'⛈️',
+  85:'❄️',86:'❄️',95:'⛈️',96:'⛈️',99:'⛈️'};
+function wmo(c){return WMO[c]||'🌡️';}
+
+function renderPronostico(d) {
+  const D = d.daily;
+  const dias = D.time.map((t,i)=>{
+    const f=new Date(t+'T12:00'); const nm=DS[f.getDay()];
+    const mx=D.temperature_2m_max[i], mn=D.temperature_2m_min[i];
+    const ll=D.precipitation_sum[i], nv=D.snowfall_sum[i], vt=D.wind_speed_10m_max[i];
+    const nv2=nivel(mn,ll,nv,vt);
+    const dbc=['db-ok','db-1','db-2','db-3'];
+    return `<div class="dia">
+      <div class="dia-nom">${nm}</div>
+      <div class="dia-fecha">${t.slice(5)}</div>
+      <div class="dia-ico">${wmo(D.weather_code[i])}</div>
+      <div class="dia-tmax">${mx?.toFixed(0)}°</div>
+      <div class="dia-tmin">${mn?.toFixed(0)}°</div>
+      <div class="dia-mm">🌧️ ${ll?.toFixed(0)}mm</div>
+      ${nv>0.5?`<div class="dia-nv">❄️ ${nv.toFixed(1)}cm</div>`:''}
+      <span class="dia-badge ${dbc[nv2]}">${LAB[nv2]}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('dias-grid').innerHTML = dias;
+
+  const labs = D.time.map(t=>DS[new Date(t+'T12:00').getDay()]);
+
+  mkChart('c-t7','line',labs,[
+    {label:'Máx',data:D.temperature_2m_max,borderColor:'#f4820a',borderWidth:2,tension:0.3,pointRadius:3,fill:false},
+    {label:'Mín',data:D.temperature_2m_min,borderColor:'#4cc9f0',borderWidth:2,tension:0.3,pointRadius:3,fill:false},
+  ],{plugins:{legend:{display:true,labels:{color:'#8fa3bf',font:{size:10}}}}});
+
+  mkChart('c-ll7','bar',labs,[
+    {label:'Lluvia (mm)',data:D.precipitation_sum,backgroundColor:D.precipitation_sum.map(v=>v>30?'#e6394660':v>10?'#f4820a60':'#4cc9f050'),borderRadius:3},
+    {label:'Nieve (cm)', data:D.snowfall_sum, backgroundColor:'rgba(220,232,245,0.25)',borderRadius:3},
+  ],{plugins:{legend:{display:true,labels:{color:'#8fa3bf',font:{size:10}}}}});
+
+  mkChart('c-ev7','bar',labs,[
+    {label:'Nieve (cm)',data:D.snowfall_sum.map(v=>v>0.5?v:0), backgroundColor:'rgba(220,232,245,0.4)',borderRadius:3},
+    {label:'Helada (°C<0)',data:D.temperature_2m_min.map(v=>v<0?Math.abs(v):0), backgroundColor:'rgba(168,218,220,0.4)',borderRadius:3},
+    {label:'Viento fuerte',data:D.wind_speed_10m_max.map(v=>v>60?v:0), backgroundColor:'rgba(141,153,174,0.4)',borderRadius:3},
+  ],{plugins:{legend:{display:true,labels:{color:'#8fa3bf',font:{size:10}}}}});
+}
+
+// ────────────────────────────────
+// MAPA
+// ────────────────────────────────
+function initMapa() {
+  if(mapaInst) return;
+  mapaInst = L.map('mapa-canvas',{
+    center:[-37,-71], zoom:5,
+    minZoom:2, maxZoom:18,
+    zoomControl:false,
+    worldCopyJump:true,
+    maxBounds: L.latLngBounds([-85,-200],[85,200]),
+    maxBoundsViscosity: 0.7
+  });
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+    attribution:'© OpenStreetMap · © CARTO', subdomains:'abcd', maxZoom:18,
+    noWrap:true
+  }).addTo(mapaInst);
+  L.control.zoom({position:'topright'}).addTo(mapaInst);
+  renderMapaFocos();
+  if(zonasDatos.length>0) renderMarcadores(zonasDatos);
+}
+
+function setLayer(layer, btn) {
+  mapaLayer = layer;
+  document.querySelectorAll('.layer-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(!mapaInst) return;
+  const showAl = layer==='alertas'||layer==='ambos';
+  const showFo = layer==='incendios'||layer==='ambos';
+  marcadores.alertas.forEach(m=>showAl?m.addTo(mapaInst):m.remove());
+  marcadores.focos.forEach(m=>showFo?m.addTo(mapaInst):m.remove());
+}
+
+function renderMarcadores(datos) {
+  marcadores.alertas.forEach(m=>m.remove());
+  marcadores.alertas = [];
+  datos.forEach(z=>{
+    const c=z.datos.current;
+    const n=nivel(c.temperature_2m,c.precipitation*6,c.snowfall,c.wind_speed_10m);
+    const col=COL[n]; const lab=LAB[n];
+    const esUsuario = !!z._user;
+    const m=L.circleMarker([z.lat,z.lng],{
+      radius: esUsuario ? (14 + n*4) : (10 + n*4),
+      fillColor: col,
+      color: esUsuario ? '#2cd4e0' : 'rgba(0,0,0,0.2)',
+      weight: esUsuario ? 3 : 1,
+      fillOpacity: 0.9,
+      dashArray: esUsuario ? '4,3' : null
+    });
+    if (esUsuario) {
+      m.bindTooltip(`📌 ${z.n}`, {
+        permanent: true, direction: 'top', offset: [0, -12],
+        className: 'tooltip-usuario'
+      });
+    }
+    m.bindPopup(`
+      <div style="font-family:Courier New,monospace;min-width:185px">
+        <div style="color:var(--cian,#00d4ff);font-weight:700;font-size:13px;margin-bottom:6px">${esUsuario?'📌':'📍'} ${z.n}${esUsuario?' <span style=\"font-size:9px;color:#2cd4e0;background:rgba(44,212,224,0.15);padding:1px 5px;border-radius:6px;margin-left:4px\">tuyo</span>':''}</div>
+        <div style="font-size:11px;color:#8fa3bf;line-height:2">
+          🌡️ <b style="color:#e8f0fe">${c.temperature_2m?.toFixed(1)}°C</b><br>
+          🌧️ <b style="color:#4cc9f0">${c.precipitation?.toFixed(1)} mm/h</b><br>
+          💨 <b style="color:#e8f0fe">${Math.round(c.wind_speed_10m)} km/h</b><br>
+          ❄️ <b style="color:#dce8f5">${c.snowfall>0.1?c.snowfall.toFixed(1)+' cm':'Sin nevazón'}</b>
+        </div>
+        <div style="margin-top:7px;padding:3px 8px;border-radius:10px;text-align:center;
+          background:${col}22;border:1px solid ${col};color:${col};font-weight:700;font-size:11px">
+          ${lab}
+        </div>
+      </div>`);
+    if(mapaLayer==='alertas'||mapaLayer==='ambos') m.addTo(mapaInst);
+    marcadores.alertas.push(m);
+  });
+}
+
+function renderMapaFocos() {
+  marcadores.focos.forEach(m=>m.remove());
+  marcadores.focos = [];
+  DEMO_FOCOS.forEach(p=>{
+    const col=p.frp>60?'#ff6b35':p.frp>20?'#f4820a':'#f5c518';
+    const r=Math.max(5,Math.min(16,p.frp/6));
+    const m=L.circleMarker([p.lat,p.lng],{
+      radius:r,fillColor:col,color:'rgba(0,0,0,0.2)',
+      weight:1,fillOpacity:0.75
+    }).bindPopup(`<div style="font-family:Courier New;min-width:130px">
+      <div style="color:#ff6b35;font-weight:700">🔥 Foco FIRMS</div>
+      <div style="font-size:11px;color:#8fa3bf;margin-top:4px">
+        FRP: <b style="color:#fff">${p.frp} MW</b><br>
+        ${p.lat.toFixed(3)}°S · ${Math.abs(p.lng).toFixed(3)}°O
+      </div></div>`);
+    if(mapaLayer==='incendios'||mapaLayer==='ambos') m.addTo(mapaInst);
+    marcadores.focos.push(m);
+  });
+}
+
+// ────────────────────────────────
+// CARGA MULTI-ZONA PARA TABLA + MAPA
+// ────────────────────────────────
+async function cargarZonas() {
+  const tbody = document.getElementById('tbl-zonas');
+  if(tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--t3);padding:1.5rem">
+    <div class="spin-c" style="width:20px;height:20px;border-width:1.5px;margin:0 auto 0.4rem"></div>
+    Cargando ${ZONAS.length} zonas…</td></tr>`;
+
+  const res = [];
+  for(let i=0;i<ZONAS.length;i+=4){
+    const lote=ZONAS.slice(i,i+4);
+    const r=await Promise.allSettled(
+      lote.map(z=>fetchMeteo(z.lat,z.lng).then(d=>({...z,datos:d})))
+    );
+    r.forEach(x=>{ if(x.status==='fulfilled') res.push(x.value); });
+    await new Promise(r=>setTimeout(r,300));
+  }
+  zonasDatos = res;
+  renderTablaZonas(res);
+  if(mapaInst) renderMarcadores(res);
+}
+
+function renderTablaZonas(datos) {
+  const tbody = document.getElementById('tbl-zonas');
+  if(!tbody) return;
+  tbody.innerHTML = datos.map(z=>{
+    const c=z.datos.current;
+    const n=nivel(c.temperature_2m,c.precipitation*6,c.snowfall,c.wind_speed_10m);
+    return `<tr>
+      <td><strong style="color:var(--t1)">${z.n}</strong></td>
+      <td style="color:var(--t3)">${z.reg}</td>
+      <td class="num" style="color:${c.temperature_2m<0?'#a8dadc':c.temperature_2m<4?'#7ec8e3':'var(--t2)'}">
+        ${c.temperature_2m?.toFixed(1)}°
+      </td>
+      <td class="num">${c.precipitation?.toFixed(1)}</td>
+      <td class="num">${Math.round(c.wind_speed_10m)}</td>
+      <td class="num">${c.snowfall>0.1?'❄️ '+c.snowfall.toFixed(1)+' cm':'—'}</td>
+      <td><span class="badge-nivel ${BNC[n]}">${LAB[n]}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ────────────────────────────────
+// INCENDIOS (CSV propio)
+// ────────────────────────────────
+const DEMO_COMUNAS = [
+  {nombre_comuna:"Santa Cruz",    nombre_region:"O'Higgins",  n_focos:312,frp_total_mw:18240,densidad_focos_x100km2:46.7,dias_con_focos:38},
+  {nombre_comuna:"Melipilla",     nombre_region:"Metropolitana",n_focos:287,frp_total_mw:15600,densidad_focos_x100km2:21.4,dias_con_focos:34},
+  {nombre_comuna:"Cauquenes",     nombre_region:"Maule",      n_focos:265,frp_total_mw:16900,densidad_focos_x100km2:13.1,dias_con_focos:29},
+  {nombre_comuna:"Longaví",       nombre_region:"Maule",      n_focos:244,frp_total_mw:14200,densidad_focos_x100km2:16.5,dias_con_focos:31},
+  {nombre_comuna:"Nacimiento",    nombre_region:"Biobío",     n_focos:218,frp_total_mw:13400,densidad_focos_x100km2:23.0,dias_con_focos:27},
+  {nombre_comuna:"Parral",        nombre_region:"Maule",      n_focos:201,frp_total_mw:12800,densidad_focos_x100km2:13.6,dias_con_focos:25},
+  {nombre_comuna:"Yumbel",        nombre_region:"Biobío",     n_focos:189,frp_total_mw:10900,densidad_focos_x100km2:22.4,dias_con_focos:24},
+  {nombre_comuna:"Quilpué",       nombre_region:"Valparaíso", n_focos:138,frp_total_mw:7100,densidad_focos_x100km2:64.2,dias_con_focos:18},
+  {nombre_comuna:"Los Ángeles",   nombre_region:"Biobío",     n_focos:127,frp_total_mw:7400,densidad_focos_x100km2:7.2,dias_con_focos:17},
+  {nombre_comuna:"Talca",         nombre_region:"Maule",      n_focos:109,frp_total_mw:5900,densidad_focos_x100km2:13.5,dias_con_focos:15},
+];
+
+function loadDemo() {
+  activarIncendios(DEMO_COMUNAS, 'Temporada 2023-2024 (demo)');
+}
+function cargarCSV(e) {
+  const f=e.target.files[0]; if(!f) return;
+  Papa.parse(f,{header:true,dynamicTyping:true,complete:r=>{
+    const d=r.data.filter(x=>x.nombre_comuna);
+    activarIncendios(d, f.name);
+  }});
+}
+
+function activarIncendios(data, label) {
+  comunasData = data;
+  const focos   = data.reduce((a,c)=>a+c.n_focos,0);
+  const afect   = data.filter(c=>c.n_focos>0).length;
+  const frp     = data.reduce((a,c)=>a+c.frp_total_mw,0);
+  const topReg  = Object.entries(data.reduce((acc,c)=>{acc[c.nombre_region]=(acc[c.nombre_region]||0)+c.n_focos;return acc},{}))
+                        .sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('k-focos').textContent   = fmt(focos);
+  document.getElementById('k-comunas').textContent = afect;
+  document.getElementById('k-frp').textContent     = fmt(Math.round(frp));
+  document.getElementById('k-region').textContent  = topReg?topReg[0]:'—';
+
+  // Gráficos incendios
+  const labels7=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const meses=[0,0,0,0,0,0,0,0,0,0,0,0];
+  data.forEach(c=>{if(c.mes_peak&&c.mes_peak>0) meses[c.mes_peak-1]+=c.n_focos;});
+  mkChart('c-fi-mes','bar',labels7,[{
+    data:meses, backgroundColor:meses.map(v=>v>500?'#e6394680':v>200?'#f4820a80':'#ff6b3560'),
+    borderRadius:3
+  }]);
+
+  const regData=Object.entries(data.reduce((acc,c)=>{acc[c.nombre_region]=(acc[c.nombre_region]||0)+c.n_focos;return acc},{}))
+    .sort((a,b)=>b[1]-a[1]).slice(0,8);
+  mkChart('c-fi-reg','bar',regData.map(r=>r[0].replace(/La |Los |El /g,'')).slice(0,8),[{
+    data:regData.map(r=>r[1]), backgroundColor:'rgba(255,107,53,0.35)',
+    borderColor:'#ff6b35',borderWidth:1,borderRadius:3,
+  }],{indexAxis:'y', plugins:{legend:{display:false}}});
+
+  // Tabla
+  document.getElementById('tbl-comunas-wrap').style.display='block';
+  const sorted=[...data].sort((a,b)=>b.n_focos-a.n_focos);
+  const maxFRP=Math.max(...sorted.map(c=>c.frp_total_mw));
+  document.getElementById('tbl-comunas').innerHTML = sorted.map((c,i)=>{
+    const n2=c.n_focos>200?3:c.n_focos>80?2:c.n_focos>0?1:0;
+    const bar=`<div style="height:3px;background:rgba(255,255,255,0.05);border-radius:2px;margin-top:2px">
+      <div style="height:100%;width:${(c.frp_total_mw/maxFRP*100).toFixed(0)}%;background:var(--fuego);border-radius:2px"></div></div>`;
+    return `<tr>
+      <td class="num" style="color:var(--t3)">${i+1}</td>
+      <td><strong style="color:var(--t1)">${c.nombre_comuna}</strong></td>
+      <td style="color:var(--t3)">${c.nombre_region}</td>
+      <td class="num">${c.n_focos.toLocaleString('es-CL')}</td>
+      <td class="num">${c.frp_total_mw?.toLocaleString('es-CL')}${bar}</td>
+      <td class="num">${c.densidad_focos_x100km2?.toFixed(1)}</td>
+      <td class="num">${c.dias_con_focos}</td>
+      <td><span class="badge-nivel ${BNC[n2]}">${LAB[n2]}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ────────────────────────────────
+// HISTORIAL (ERA5 sintético)
+// ────────────────────────────────
+const HIST = {
+  lluvia:{
+    tit:'Precipitación mensual promedio (mm) · ERA5',
+    labels:['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'],
+    ds:[
+      {l:'Santiago',  d:[1,2,5,14,66,96,88,58,30,13,8,3],   b:'#7ec8e3'},
+      {l:'Concepción',d:[26,22,45,106,209,247,230,177,118,76,48,30], b:'#4cc9f0'},
+      {l:'Pto. Montt',d:[68,54,81,195,346,389,380,291,194,151,112,82],b:'#00d4ff'},
+    ]
+  },
+  temp:{
+    tit:'Temperatura máxima mensual promedio (°C) · ERA5',
+    labels:['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'],
+    ds:[
+      {l:'Santiago',   d:[29,28,25,19,14,11,10,12,15,20,25,28], b:'#f4820a'},
+      {l:'Concepción', d:[21,20,18,14,11,9,8,9,11,15,17,20],    b:'#f5c518'},
+      {l:'Pto. Montt', d:[17,17,14,11,9,7,6,7,9,11,13,16],      b:'#7ec8e3'},
+    ]
+  },
+  nieve:{
+    tit:'Días con nevazón por mes · Cordillera (promedio histórico)',
+    labels:['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'],
+    ds:[
+      {l:'Cord. Central',d:[0,0,0,1,6,12,14,10,5,2,0,0],  b:'#dce8f5'},
+      {l:'Cord. Sur',    d:[0,0,1,5,18,28,32,25,14,6,2,0], b:'#a8dadc'},
+      {l:'Magallanes',   d:[2,3,8,15,22,28,30,26,18,12,7,3],b:'#7ec8e3'},
+    ]
+  },
+  viento:{
+    tit:'Velocidad media del viento (km/h) · Por macrozona',
+    labels:['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'],
+    ds:[
+      {l:'Norte',   d:[22,20,18,17,18,20,22,24,25,26,25,23], b:'#f5c518'},
+      {l:'Central', d:[18,17,16,14,16,18,20,21,20,19,18,17], b:'#7ec8e3'},
+      {l:'Austral', d:[45,42,38,35,42,48,52,50,46,44,44,46], b:'#e63946'},
+    ]
+  },
+  incendios:{
+    tit:'Superficie quemada por temporada (miles de ha) · CONAF',
+    labels:['16-17','17-18','18-19','19-20','20-21','21-22','22-23','23-24'],
+    ds:[
+      {l:'Hectáreas (miles)',d:[591.7,136.5,54.4,23.5,47.0,280.0,12.5,44.0], b:'#ff6b35'},
+    ]
+  }
+};
+
+function hist(tipo, btn) {
+  histMode=tipo;
+  document.querySelectorAll('.ht').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const h=HIST[tipo];
+  document.getElementById('hist-tit').textContent=h.tit;
+  const type=tipo==='temp'?'line':'bar';
+  if(charts['c-hist']) charts['c-hist'].destroy();
+  charts['c-hist'] = new Chart(document.getElementById('c-hist'),{
+    type, data:{
+      labels:h.labels,
+      datasets:h.ds.map(d=>({
+        label:d.l, data:d.d,
+        borderColor:d.b, backgroundColor:type==='line'?d.b+'18':d.b+'50',
+        borderWidth:2, fill:type==='line', tension:0.4, borderRadius:3,
+        pointRadius:type==='line'?3:0,
+      }))
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#8fa3bf',font:{size:10}}}},
+      scales:{
+        x:{ticks:{color:'#4a6580',font:{size:9}},grid:{color:'rgba(255,255,255,0.03)'}},
+        y:{ticks:{color:'#4a6580',font:{size:9}},grid:{color:'rgba(255,255,255,0.03)'}}
+      }
+    }
+  });
+}
+
+function initHistorial() {
+  if(charts['c-hist']) return;
+  hist('lluvia', document.querySelector('.ht'));
+  // Heladas
+  if(!charts['c-heladas'])
+    mkChart('c-heladas','bar',
+      ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'],[
+        {label:'Central (Santiago)', data:[0,0,0,1,4,8,9,7,3,1,0,0], backgroundColor:'rgba(126,200,227,0.4)',borderRadius:3},
+        {label:'Sur (Temuco)',        data:[0,0,1,4,12,16,18,15,10,5,1,0], backgroundColor:'rgba(168,218,220,0.4)',borderRadius:3},
+        {label:'Austral (Coyhaique)',data:[3,4,8,15,22,25,27,24,18,12,6,3], backgroundColor:'rgba(220,232,245,0.4)',borderRadius:3},
+      ],{plugins:{legend:{display:true,labels:{color:'#8fa3bf',font:{size:10}}}}});
+  // Radar
+  if(!charts['c-radar'])
+    charts['c-radar']=new Chart(document.getElementById('c-radar'),{
+      type:'radar',
+      data:{
+        labels:['Lluvia','Heladas','Nieve','Viento','Incendios'],
+        datasets:[
+          {label:'Norte',   data:[10,25,5,55,15],  borderColor:'#f5c518',backgroundColor:'rgba(245,197,24,0.08)'},
+          {label:'Centro',  data:[45,35,15,30,70],  borderColor:'#4cc9f0',backgroundColor:'rgba(76,201,240,0.08)'},
+          {label:'Sur',     data:[85,50,55,70,40],  borderColor:'#00d4ff',backgroundColor:'rgba(0,212,255,0.08)'},
+          {label:'Austral', data:[65,75,85,95,5],   borderColor:'#dce8f5',backgroundColor:'rgba(220,232,245,0.06)'},
+        ]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{labels:{color:'#8fa3bf',font:{size:10}}}},
+        scales:{r:{
+          ticks:{color:'#4a6580',backdropColor:'transparent',font:{size:8}},
+          grid:{color:'rgba(255,255,255,0.06)'},
+          pointLabels:{color:'#8fa3bf',font:{size:10}}
+        }}
+      }
+    });
+}
+
+// ────────────────────────────────
+// DRAG & DROP
+// ────────────────────────────────
+const dz = document.getElementById('drop-z');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));
+dz.addEventListener('drop',e=>{
+  e.preventDefault();dz.classList.remove('drag');
+  const f=e.dataTransfer.files[0];
+  if(f) cargarCSV({target:{files:[f]}});
+});
+
+// ────────────────────────────────
+// VISOR SCRIPT QGIS
+// ────────────────────────────────
+function togglePaso(header) {
+  const body  = header.nextElementSibling;
+  const arrow = header.querySelector('.paso-arrow');
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  arrow.classList.toggle('open', !isOpen);
+}
+
+function scrollPaso(id, btn) {
+  document.querySelectorAll('.toc-item').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const el = document.getElementById(id);
+  if(!el) return;
+  // Abrir acordeón si está cerrado
+  const body = el.querySelector('.paso-body');
+  const arrow = el.querySelector('.paso-arrow');
+  if(body && !body.classList.contains('open')) {
+    body.classList.add('open');
+    if(arrow) arrow.classList.add('open');
+  }
+  el.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function copiarBloque(btn, id) {
+  const pre = document.getElementById(id);
+  if(!pre) return;
+  // Extraer texto plano (sin tags HTML)
+  const txt = pre.innerText || pre.textContent;
+  navigator.clipboard.writeText(txt).then(()=>{
+    btn.textContent = '✓ Copiado';
+    btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent='Copiar'; btn.classList.remove('copied'); }, 2000);
+  }).catch(()=>{
+    // Fallback para navegadores sin clipboard API
+    const ta = document.createElement('textarea');
+    ta.value = txt; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent = '✓ Copiado'; btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent='Copiar'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// Script completo para descargar
+const SCRIPT_COMPLETO = `"""
+=============================================================================
+MONITOR RIESGOS CL — Script QGIS Python
+Análisis de incendios forestales Chile · Indicadores por comuna/región
+=============================================================================
+Fuentes de datos (gratuitas y públicas):
+  - NASA FIRMS: https://firms.modaps.eosdis.nasa.gov/country/
+  - BCN límites: https://www.bcn.cl/siit/mapas_vectoriales/
+  - CONAF estadísticas: https://www.conaf.cl/incendios/
+
+Entorno: QGIS 3.x · Consola Python o Editor de Scripts
+Dependencias: PyQGIS, processing, csv, datetime, os
+Costo: $0
+=============================================================================
+"""
+
+from qgis.core import (
+    QgsProject, QgsVectorLayer, QgsField, QgsFeature,
+    QgsGeometry, QgsPointXY, QgsSpatialIndex,
+    QgsVectorFileWriter, QgsCoordinateReferenceSystem,
+    QgsFeatureRequest
+)
+from PyQt5.QtCore import QVariant
+import processing, os, csv, datetime
+
+# =============================================================================
+# CONFIGURACIÓN — edita solo este bloque
+# =============================================================================
+CONFIG = {
+    "dir_base":         "C:/GEO_CHILE/incendios",   # tu ruta
+    # "dir_base":       "/home/usuario/geo_chile",   # Linux/Mac
+
+    "comunas_shp":      "comunas_chile.shp",
+    "regiones_shp":     "regiones_chile.shp",
+    "firms_csv":        "firms_modis_chile.csv",
+
+    "col_lat":          "latitude",
+    "col_lon":          "longitude",
+    "col_fecha":        "acq_date",
+    "col_confianza":    "confidence",
+    "col_frp":          "frp",
+
+    "confianza_minima": 50,
+    "fecha_inicio":     "2023-11-01",
+    "fecha_fin":        "2024-03-31",
+
+    "epsg":             "EPSG:5361",   # SIRGAS 2000 / UTM Zona 19S
+
+    "out_comunas_csv":  "indicadores_comunas.csv",
+    "out_regiones_csv": "indicadores_regiones.csv",
+    "out_shp":          "comunas_indicadores.shp",
+}
+
+# =============================================================================
+# UTILIDADES
+# =============================================================================
+def ruta(nombre): return os.path.join(CONFIG["dir_base"], nombre)
+def log(msg): print(f"[{datetime.datetime.now():%H:%M:%S}] {msg}")
+
+# =============================================================================
+# PASO 1: Cargar y reproyectar capas base
+# =============================================================================
+def cargar_capas():
+    comunas  = QgsVectorLayer(ruta(CONFIG["comunas_shp"]),  "comunas",  "ogr")
+    regiones = QgsVectorLayer(ruta(CONFIG["regiones_shp"]), "regiones", "ogr")
+    if not comunas.isValid():
+        raise Exception(f"No se pudo cargar: {ruta(CONFIG['comunas_shp'])}")
+    epsg = CONFIG["epsg"]
+    comunas_utm = processing.run("native:reprojectlayer", {
+        "INPUT": comunas, "TARGET_CRS": QgsCoordinateReferenceSystem(epsg),
+        "OUTPUT": "memory:"})["OUTPUT"]
+    regiones_utm = processing.run("native:reprojectlayer", {
+        "INPUT": regiones, "TARGET_CRS": QgsCoordinateReferenceSystem(epsg),
+        "OUTPUT": "memory:"})["OUTPUT"]
+    log(f"Comunas: {comunas_utm.featureCount()} · Regiones: {regiones_utm.featureCount()}")
+    return comunas_utm, regiones_utm
+
+# =============================================================================
+# PASO 2: Leer y filtrar puntos de calor NASA FIRMS
+# =============================================================================
+def cargar_firms():
+    capa = QgsVectorLayer("Point?crs=EPSG:4326", "firms", "memory")
+    prov = capa.dataProvider()
+    prov.addAttributes([
+        QgsField("fecha",     QVariant.String),
+        QgsField("confianza", QVariant.Int),
+        QgsField("frp",       QVariant.Double),
+    ])
+    capa.updateFields()
+    fecha_ini = datetime.date.fromisoformat(CONFIG["fecha_inicio"])
+    fecha_fin = datetime.date.fromisoformat(CONFIG["fecha_fin"])
+    conf_min  = CONFIG["confianza_minima"]
+    features, total, ok = [], 0, 0
+    with open(ruta(CONFIG["firms_csv"]), "r", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            total += 1
+            try:
+                lat   = float(row["latitude"])
+                lon   = float(row["longitude"])
+                conf  = int(row.get("confidence", 0) or 0)
+                frp   = float(row.get("frp", 0) or 0)
+                fecha = datetime.date.fromisoformat(row["acq_date"])
+            except: continue
+            if conf < conf_min: continue
+            if not (fecha_ini <= fecha <= fecha_fin): continue
+            feat = QgsFeature()
+            feat.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(lon, lat)))
+            feat.setAttributes([row["acq_date"], conf, frp])
+            features.append(feat)
+            ok += 1
+    prov.addFeatures(features)
+    capa.updateExtents()
+    log(f"FIRMS: {total} filas → {ok} puntos válidos")
+    return processing.run("native:reprojectlayer",
+        {"INPUT": capa, "TARGET_CRS": QgsCoordinateReferenceSystem(CONFIG["epsg"]),
+         "OUTPUT": "memory:"})["OUTPUT"]
+
+# =============================================================================
+# PASO 3: Join espacial — asignar focos a comunas
+# =============================================================================
+def join_espacial(firms_utm, comunas_utm):
+    idx          = QgsSpatialIndex(comunas_utm.getFeatures())
+    comunas_dict = {f.id(): f for f in comunas_utm.getFeatures()}
+    campos = [f.name().lower() for f in comunas_utm.fields()]
+    campo_com = next((c for c in campos if "comuna" in c), campos[0])
+    campo_reg = next((c for c in campos if "region" in c), "region")
+    resultado = {}
+    for feat in comunas_utm.getFeatures():
+        resultado[feat.id()] = {
+            "nombre_comuna": feat[campo_com],
+            "nombre_region": feat[campo_reg] if campo_reg in campos else "N/D",
+            "area_km2":      feat.geometry().area() / 1_000_000,
+            "puntos":        []
+        }
+    asignados = 0
+    for pt in firms_utm.getFeatures():
+        geom = pt.geometry()
+        for fid in idx.intersects(geom.boundingBox()):
+            if comunas_dict[fid].geometry().contains(geom):
+                resultado[fid]["puntos"].append(pt)
+                asignados += 1
+                break
+    log(f"Puntos asignados: {asignados}/{firms_utm.featureCount()}")
+    return resultado
+
+# =============================================================================
+# PASO 4: Calcular indicadores por comuna
+# =============================================================================
+def calcular_indicadores(resultado):
+    indicadores = []
+    for fid, data in resultado.items():
+        puntos = data["puntos"]
+        n      = len(puntos)
+        area   = data["area_km2"]
+        if n == 0:
+            frp_total = frp_prom = densidad = 0.0
+            mes_peak  = "N/A"
+            dias      = 0
+        else:
+            frps   = [p["frp"]   for p in puntos]
+            fechas = [p["fecha"] for p in puntos]
+            frp_total = round(sum(frps), 2)
+            frp_prom  = round(frp_total / n, 2)
+            densidad  = round((n / area) * 100, 4) if area > 0 else 0
+            meses = {}
+            for f in fechas:
+                m = datetime.date.fromisoformat(f).month
+                meses[m] = meses.get(m, 0) + 1
+            mes_peak = max(meses, key=meses.get)
+            dias     = len(set(fechas))
+        indicadores.append({
+            "nombre_comuna":          data["nombre_comuna"],
+            "nombre_region":          data["nombre_region"],
+            "area_km2":               round(area, 2),
+            "n_focos":                n,
+            "frp_total_mw":           frp_total,
+            "frp_prom_mw":            frp_prom,
+            "densidad_focos_x100km2": densidad,
+            "mes_peak":               mes_peak,
+            "dias_con_focos":         dias,
+            "_fid":                   fid,
+        })
+    return indicadores
+
+# =============================================================================
+# PASO 5: Agregar por región
+# =============================================================================
+def agregar_por_region(ind):
+    reg = {}
+    for row in ind:
+        r = row["nombre_region"]
+        if r not in reg:
+            reg[r] = {"nombre_region":r,"n_comunas":0,"com_afect":0,
+                      "n_focos":0,"frp_total":0.0,"area":0.0}
+        d = reg[r]
+        d["n_comunas"] += 1
+        d["n_focos"]   += row["n_focos"]
+        d["frp_total"] += row["frp_total_mw"]
+        d["area"]      += row["area_km2"]
+        if row["n_focos"] > 0: d["com_afect"] += 1
+    for d in reg.values():
+        d["densidad"]  = round(d["n_focos"]/d["area"]*100,4) if d["area"] else 0
+        d["pct_afect"] = round(d["com_afect"]/d["n_comunas"]*100,1) if d["n_comunas"] else 0
+    return list(reg.values())
+
+# =============================================================================
+# PASO 6: Exportar resultados
+# =============================================================================
+def exportar(ind_comunas, ind_regiones, comunas_utm):
+    # CSV comunas
+    campos = ["nombre_comuna","nombre_region","area_km2","n_focos",
+              "frp_total_mw","frp_prom_mw","densidad_focos_x100km2",
+              "mes_peak","dias_con_focos"]
+    with open(ruta(CONFIG["out_comunas_csv"]), "w", newline="", encoding="utf-8-sig") as f:
+        w = csv.DictWriter(f, fieldnames=campos, extrasaction="ignore")
+        w.writeheader(); w.writerows(ind_comunas)
+
+    # CSV regiones
+    campos_r = ["nombre_region","n_comunas","com_afect","pct_afect",
+                "n_focos","frp_total","area","densidad"]
+    with open(ruta(CONFIG["out_regiones_csv"]), "w", newline="", encoding="utf-8-sig") as f:
+        w = csv.DictWriter(f, fieldnames=campos_r, extrasaction="ignore")
+        w.writeheader(); w.writerows(ind_regiones)
+
+    # Shapefile enriquecido
+    capa_out = comunas_utm.materialize(QgsFeatureRequest())
+    capa_out.dataProvider().addAttributes([
+        QgsField("n_focos",  QVariant.Int),
+        QgsField("frp_tot",  QVariant.Double),
+        QgsField("densidad", QVariant.Double),
+        QgsField("mes_peak", QVariant.Int),
+    ])
+    capa_out.updateFields()
+    idx_ind = {r["_fid"]: r for r in ind_comunas}
+    capa_out.startEditing()
+    for feat in capa_out.getFeatures():
+        d = idx_ind.get(feat.id(), {})
+        feat["n_focos"]  = d.get("n_focos", 0)
+        feat["frp_tot"]  = d.get("frp_total_mw", 0.0)
+        feat["densidad"] = d.get("densidad_focos_x100km2", 0.0)
+        feat["mes_peak"] = int(d.get("mes_peak", 0) or 0)
+        capa_out.updateFeature(feat)
+    capa_out.commitChanges()
+    ruta_shp = ruta(CONFIG["out_shp"])
+    QgsVectorFileWriter.writeAsVectorFormat(
+        capa_out, ruta_shp, "utf-8",
+        QgsCoordinateReferenceSystem(CONFIG["epsg"]), "ESRI Shapefile")
+    QgsProject.instance().addMapLayer(
+        QgsVectorLayer(ruta_shp, "Comunas — Indicadores Incendios", "ogr"))
+    log("✅ Outputs en: " + CONFIG["dir_base"])
+
+# =============================================================================
+# MAIN
+# =============================================================================
+def main():
+    log("=== INICIO · Monitor RiesgosCL · Script QGIS ===")
+    try:
+        comunas_utm, regiones_utm = cargar_capas()
+        firms_utm                 = cargar_firms()
+        resultado                 = join_espacial(firms_utm, comunas_utm)
+        ind_comunas               = calcular_indicadores(resultado)
+        ind_regiones              = agregar_por_region(ind_comunas)
+        exportar(ind_comunas, ind_regiones, comunas_utm)
+
+        total   = sum(r["n_focos"] for r in ind_comunas)
+        afect   = sum(1 for r in ind_comunas if r["n_focos"] > 0)
+        top10   = sorted(ind_comunas, key=lambda x: x["n_focos"], reverse=True)[:10]
+        print("\\n" + "="*55)
+        print(f"  Total focos      : {total:,}")
+        print(f"  Comunas afectadas: {afect} / {len(ind_comunas)}")
+        print("  TOP 10 COMUNAS:")
+        for i,r in enumerate(top10,1):
+            print(f"  {i:2}. {r['nombre_comuna']:<20} {r['n_focos']:>5} focos")
+        print("="*55)
+        log("=== PROCESO COMPLETADO ===")
+    except Exception as e:
+        print(f"\\n[ERROR] {e}")
+        import traceback; traceback.print_exc()
+
+main()
+`;
+
+function descargarScript() {
+  const blob = new Blob([SCRIPT_COMPLETO], {type:'text/x-python;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'riesgoscl_qgis_incendios.py';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ────────────────────────────────
+// INIT
+// ────────────────────────────────
+window.addEventListener('load', cargarTodo);
+</script>
+
+<!-- ══════════════════ BÚSQUEDA DE CIUDAD (Nominatim + localStorage) ══════════════════ -->
+<style>
+  .city-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 1000; display: none;
+    align-items: flex-start; justify-content: center;
+    padding: 4rem 1rem 1rem;
+  }
+  .city-overlay.open { display: flex; }
+  .city-modal {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    width: 100%; max-width: 520px;
+    padding: 1.25rem 1.25rem 1rem;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    font-family: inherit;
+  }
+  .city-modal h3 {
+    color: var(--t1); font-size: 15px; font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+  .city-modal p.hint {
+    color: var(--t2); font-size: 12px; margin-bottom: 0.85rem; line-height: 1.5;
+  }
+  .city-modal .close {
+    position: absolute; top: 0.6rem; right: 0.75rem;
+    background: none; border: none; color: var(--t2);
+    cursor: pointer; font-size: 1.1rem;
+  }
+  .city-modal .close:hover { color: var(--t1); }
+  .city-search-row {
+    display: flex; gap: 0.5rem; margin-bottom: 0.75rem;
+  }
+  .city-search-row input {
+    flex: 1;
+    background: var(--surface2); border: 1px solid var(--border2);
+    color: var(--t1); padding: 0.5rem 0.75rem;
+    border-radius: 6px; font-family: inherit; font-size: 13px;
+    outline: none; transition: border-color 0.15s;
+  }
+  .city-search-row input:focus { border-color: var(--cian); }
+  .city-search-row button {
+    background: var(--cian); color: #06121a;
+    border: none; padding: 0 1rem; border-radius: 6px;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    font-family: inherit;
+  }
+  .city-search-row button:hover { opacity: 0.85; }
+  .city-search-row button:disabled { opacity: 0.5; cursor: wait; }
+  .city-results {
+    max-height: 240px; overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 6px; background: var(--panel);
+    margin-bottom: 1rem;
+  }
+  .city-results:empty { display: none; }
+  .city-result {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 0.5rem; padding: 0.55rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer; transition: background 0.12s;
+  }
+  .city-result:last-child { border-bottom: none; }
+  .city-result:hover { background: var(--cian-glow); }
+  .city-result-name { color: var(--t1); font-size: 13px; }
+  .city-result-coord { color: var(--t2); font-size: 10.5px; font-family: monospace; }
+  .city-saved-title {
+    color: var(--t2); font-size: 10.5px;
+    text-transform: uppercase; letter-spacing: 1px;
+    margin-bottom: 0.35rem;
+  }
+  .city-saved {
+    display: flex; flex-wrap: wrap; gap: 0.35rem;
+    min-height: 26px;
+  }
+  .city-saved-chip {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--t1); font-size: 11px;
+    padding: 3px 6px 3px 10px; border-radius: 12px;
+    display: inline-flex; align-items: center; gap: 0.35rem;
+  }
+  .city-saved-chip button {
+    background: none; border: none; color: var(--t2);
+    cursor: pointer; padding: 0 4px; font-size: 13px; line-height: 1;
+  }
+  .city-saved-chip button:hover { color: #e63946; }
+  .city-saved-empty { color: var(--t2); font-size: 11px; font-style: italic; }
+  .city-msg { color: var(--t2); font-size: 12px; padding: 0.5rem 0.75rem; }
+  .city-msg.error { color: #e63946; }
+</style>
+
+<div class="city-overlay" id="city-overlay">
+  <div class="city-modal" role="dialog" aria-modal="true" aria-labelledby="city-modal-title">
+    <button class="close" onclick="cerrarCiudadModal()" aria-label="Cerrar">✕</button>
+    <h3 id="city-modal-title">Buscar otra ciudad</h3>
+    <p class="hint">
+      Escribe el nombre (ej. <em>Chillán</em>, <em>Castro</em>, <em>San Pedro de Atacama</em>).
+      Los datos vienen de Open-Meteo y aceptan cualquier coordenada del mundo.
+      Tus ciudades se guardan en este navegador.
+    </p>
+    <div class="city-search-row">
+      <input
+        id="city-search-input"
+        type="text"
+        placeholder="Buscar ciudad o lugar…"
+        autocomplete="off"
+        onkeydown="if(event.key==='Enter') ejecutarBusquedaCiudad()"
+      >
+      <button id="city-search-btn" onclick="ejecutarBusquedaCiudad()">Buscar</button>
+    </div>
+    <div id="city-results" class="city-results"></div>
+    <div class="city-saved-title">Mis ciudades guardadas</div>
+    <div id="city-saved" class="city-saved"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const LS_KEY = 'geohub_riesgos_ciudades_v1';
+  const OPTGROUP_LABEL = 'Mis ciudades';
+  const NOMINATIM = 'https://nominatim.openstreetmap.org/search';
+
+  function leerCiudades() {
+    try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); }
+    catch { return []; }
+  }
+  function escribirCiudades(arr) {
+    localStorage.setItem(LS_KEY, JSON.stringify(arr));
+  }
+
+  function obtenerOptgroup() {
+    const sel = document.getElementById('zona-sel');
+    let og = [...sel.querySelectorAll('optgroup')]
+      .find(o => o.label === OPTGROUP_LABEL);
+    if (!og) {
+      og = document.createElement('optgroup');
+      og.label = OPTGROUP_LABEL;
+      sel.appendChild(og);
+    }
+    return og;
+  }
+
+  function renderOptions() {
+    const sel = document.getElementById('zona-sel');
+    const og = obtenerOptgroup();
+    og.innerHTML = '';
+    leerCiudades().forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = `${c.lat},${c.lng},${c.nombre}`;
+      opt.textContent = c.nombre;
+      opt.dataset.userCity = '1';
+      og.appendChild(opt);
+    });
+    if (og.children.length === 0) og.remove();
+  }
+
+  function renderChipsGuardadas() {
+    const cont = document.getElementById('city-saved');
+    const arr = leerCiudades();
+    if (arr.length === 0) {
+      cont.innerHTML = '<span class="city-saved-empty">Aún no agregas ciudades.</span>';
+      return;
+    }
+    cont.innerHTML = arr.map((c, i) => `
+      <span class="city-saved-chip">
+        ${c.nombre}
+        <button onclick="eliminarCiudadGuardada(${i})" title="Eliminar">✕</button>
+      </span>
+    `).join('');
+  }
+
+  window.abrirCiudadModal = function () {
+    document.getElementById('city-overlay').classList.add('open');
+    renderChipsGuardadas();
+    setTimeout(() => document.getElementById('city-search-input').focus(), 50);
+  };
+  window.cerrarCiudadModal = function () {
+    document.getElementById('city-overlay').classList.remove('open');
+  };
+
+  window.ejecutarBusquedaCiudad = async function () {
+    const input = document.getElementById('city-search-input');
+    const btn   = document.getElementById('city-search-btn');
+    const out   = document.getElementById('city-results');
+    const q = input.value.trim();
+    if (!q) { out.innerHTML = '<div class="city-msg">Escribe algo para buscar.</div>'; return; }
+    btn.disabled = true; btn.textContent = '…';
+    out.innerHTML = '<div class="city-msg">Buscando…</div>';
+    try {
+      const url = `${NOMINATIM}?format=json&limit=8&addressdetails=1&q=${encodeURIComponent(q)}`;
+      const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const data = await r.json();
+      if (data.length === 0) {
+        out.innerHTML = '<div class="city-msg">Sin resultados.</div>';
+        return;
+      }
+      out.innerHTML = data.map(d => {
+        const lat = parseFloat(d.lat).toFixed(3);
+        const lon = parseFloat(d.lon).toFixed(3);
+        const nombre = d.display_name.split(',').slice(0, 2).join(',').trim();
+        const safe = nombre.replace(/'/g, "\\'");
+        return `
+          <div class="city-result" onclick="agregarCiudadDesdeBusqueda('${safe}', ${d.lat}, ${d.lon})">
+            <div>
+              <div class="city-result-name">${nombre}</div>
+              <div class="city-result-coord">${lat}, ${lon}</div>
+            </div>
+            <div class="city-result-coord">↵</div>
+          </div>`;
+      }).join('');
+    } catch (e) {
+      out.innerHTML = `<div class="city-msg error">Error: ${e.message}. Reintenta en unos segundos (Nominatim limita 1 req/seg).</div>`;
+    } finally {
+      btn.disabled = false; btn.textContent = 'Buscar';
+    }
+  };
+
+  window.agregarCiudadDesdeBusqueda = function (nombre, lat, lng) {
+    lat = parseFloat(lat); lng = parseFloat(lng);
+    const arr = leerCiudades();
+    if (!arr.some(c => c.nombre === nombre && c.lat === lat && c.lng === lng)) {
+      arr.push({ nombre, lat, lng });
+      escribirCiudades(arr);
+    }
+    renderOptions();
+    const sel = document.getElementById('zona-sel');
+    sel.value = `${lat},${lng},${nombre}`;
+    if (typeof sincronizarZonasUsuario === 'function') sincronizarZonasUsuario();
+    cerrarCiudadModal();
+    if (typeof cargarTodo === 'function') cargarTodo();
+    else if (typeof cambiarZona === 'function') cambiarZona();
+  };
+
+  window.eliminarCiudadGuardada = function (idx) {
+    const arr = leerCiudades();
+    arr.splice(idx, 1);
+    escribirCiudades(arr);
+    renderOptions();
+    renderChipsGuardadas();
+    if (typeof sincronizarZonasUsuario === 'function') sincronizarZonasUsuario();
+    if (typeof cargarTodo === 'function') cargarTodo();
+  };
+
+  // Cerrar con click en overlay y con Escape
+  document.getElementById('city-overlay').addEventListener('click', e => {
+    if (e.target.id === 'city-overlay') cerrarCiudadModal();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' &&
+        document.getElementById('city-overlay').classList.contains('open')) {
+      cerrarCiudadModal();
+    }
+  });
+
+  // Restaurar al cargar
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', renderOptions);
+  } else {
+    renderOptions();
+  }
+})();
+</script>
+
+<!-- ══════════════════ SUBIDA DE KMZ / KML / GEOJSON ══════════════════ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/togeojson/0.16.0/togeojson.min.js"></script>
+<style>
+  .file-drop {
+    border: 2px dashed var(--border2);
+    border-radius: 8px;
+    padding: 1.5rem 1rem;
+    text-align: center;
+    color: var(--t2);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-bottom: 0.85rem;
+  }
+  .file-drop:hover, .file-drop.drag {
+    border-color: var(--cian);
+    background: var(--cian-glow);
+    color: var(--t1);
+  }
+  .file-drop strong { color: var(--cian); }
+  .file-drop input { display: none; }
+  .file-features {
+    max-height: 240px; overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 6px; background: var(--panel);
+    margin-bottom: 0.75rem;
+  }
+  .file-features:empty { display: none; }
+  .file-feature {
+    display: flex; align-items: center; gap: 0.55rem;
+    padding: 0.45rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px; color: var(--t1);
+  }
+  .file-feature:last-child { border-bottom: none; }
+  .file-feature input[type=checkbox] {
+    accent-color: var(--cian);
+    cursor: pointer;
+  }
+  .file-feature .ff-name { flex: 1; }
+  .file-feature .ff-coord {
+    color: var(--t2); font-size: 10.5px; font-family: monospace;
+    white-space: nowrap;
+  }
+  .file-feature .ff-type {
+    color: var(--t2); font-size: 10px;
+    background: var(--surface2); padding: 1px 6px;
+    border-radius: 8px; font-family: monospace;
+  }
+  .file-actions {
+    display: flex; gap: 0.5rem; justify-content: space-between;
+    align-items: center;
+  }
+  .file-actions .left { color: var(--t2); font-size: 11px; }
+  .file-actions button {
+    background: var(--cian); color: #06121a;
+    border: none; padding: 0.4rem 0.85rem; border-radius: 6px;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    font-family: inherit;
+  }
+  .file-actions button:hover { opacity: 0.85; }
+  .file-actions button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .file-actions .btn-toggle {
+    background: var(--surface2); color: var(--t2);
+    border: 1px solid var(--border2);
+  }
+  .file-actions .btn-toggle:hover { color: var(--t1); }
+</style>
+
+<div class="city-overlay" id="file-overlay">
+  <div class="city-modal" role="dialog" aria-modal="true">
+    <button class="close" onclick="cerrarArchivoModal()" aria-label="Cerrar">✕</button>
+    <h3>Subir KMZ / KML / GeoJSON</h3>
+    <p class="hint">
+      Los <strong>puntos</strong> se agregan tal cual. <strong>Polígonos y líneas</strong>
+      usan su centroide. Cada elemento se vuelve consultable contra Open-Meteo y se guarda
+      en este navegador.
+    </p>
+    <label class="file-drop" id="file-drop">
+      <input type="file" id="file-input" accept=".kmz,.kml,.geojson,.json">
+      <div>📂 Arrastra un archivo aquí o <strong>haz clic para elegir</strong></div>
+      <div style="margin-top:0.25rem;font-size:10.5px">Soporta .kmz · .kml · .geojson · .json</div>
+    </label>
+    <div id="file-status" class="city-msg"></div>
+    <div id="file-features" class="file-features"></div>
+    <div class="file-actions" id="file-actions" style="display:none">
+      <span class="left" id="file-summary">—</span>
+      <button class="btn-toggle" onclick="toggleSeleccionFeatures()">Todos / Ninguno</button>
+      <button id="btn-agregar-features" onclick="agregarFeaturesSeleccionadas()">Agregar seleccionados</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const LS_KEY = 'geohub_riesgos_ciudades_v1';
+  let featuresParseadas = []; // [{nombre, lat, lng, tipo}]
+
+  // ─── parsers ───
+  function centroide(coords) {
+    // coords: lista plana de [lng, lat]
+    let x = 0, y = 0, n = 0;
+    coords.forEach(([lng, lat]) => {
+      if (Number.isFinite(lng) && Number.isFinite(lat)) {
+        x += lng; y += lat; n++;
+      }
+    });
+    return n ? [x / n, y / n] : null;
+  }
+  function aplanarCoords(geom) {
+    if (!geom) return [];
+    if (geom.type === 'Point') return [geom.coordinates];
+    if (geom.type === 'LineString' || geom.type === 'MultiPoint') return geom.coordinates;
+    if (geom.type === 'Polygon') return geom.coordinates.flat();
+    if (geom.type === 'MultiLineString') return geom.coordinates.flat();
+    if (geom.type === 'MultiPolygon') return geom.coordinates.flat(2);
+    if (geom.type === 'GeometryCollection') {
+      return geom.geometries.flatMap(aplanarCoords);
+    }
+    return [];
+  }
+  function extraerFeatures(geojson) {
+    const feats = (geojson.features || []).map((f, i) => {
+      const props = f.properties || {};
+      const nombre = props.name || props.Name || props.NAME || props.title || `Feature ${i + 1}`;
+      let lat, lng, tipo;
+      if (f.geometry?.type === 'Point') {
+        [lng, lat] = f.geometry.coordinates;
+        tipo = 'pt';
+      } else {
+        const coords = aplanarCoords(f.geometry);
+        const c = centroide(coords);
+        if (!c) return null;
+        [lng, lat] = c;
+        tipo = (f.geometry?.type || '').replace('Multi', 'm') + ' · centroide';
+      }
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+      return { nombre: String(nombre).trim().slice(0, 80), lat, lng, tipo };
+    }).filter(Boolean);
+    // Dedup por (nombre+coord)
+    const seen = new Set();
+    return feats.filter(f => {
+      const k = `${f.nombre}|${f.lat.toFixed(4)}|${f.lng.toFixed(4)}`;
+      if (seen.has(k)) return false;
+      seen.add(k); return true;
+    });
+  }
+  async function parsearArchivo(file) {
+    const nombre = file.name.toLowerCase();
+    if (nombre.endsWith('.geojson') || nombre.endsWith('.json')) {
+      const txt = await file.text();
+      const data = JSON.parse(txt);
+      if (data.type === 'FeatureCollection') return extraerFeatures(data);
+      if (data.type === 'Feature') return extraerFeatures({ features: [data] });
+      throw new Error('JSON no es un GeoJSON FeatureCollection ni Feature.');
+    }
+    if (nombre.endsWith('.kml')) {
+      const txt = await file.text();
+      const xml = new DOMParser().parseFromString(txt, 'text/xml');
+      if (!window.toGeoJSON) throw new Error('Librería toGeoJSON no cargada.');
+      return extraerFeatures(window.toGeoJSON.kml(xml));
+    }
+    if (nombre.endsWith('.kmz')) {
+      if (!window.JSZip) throw new Error('Librería JSZip no cargada.');
+      const buf = await file.arrayBuffer();
+      const zip = await window.JSZip.loadAsync(buf);
+      const kmlEntry = Object.values(zip.files)
+        .find(f => !f.dir && f.name.toLowerCase().endsWith('.kml'));
+      if (!kmlEntry) throw new Error('El KMZ no contiene ningún .kml dentro.');
+      const txt = await kmlEntry.async('string');
+      const xml = new DOMParser().parseFromString(txt, 'text/xml');
+      return extraerFeatures(window.toGeoJSON.kml(xml));
+    }
+    throw new Error('Formato no soportado. Usa .kmz, .kml, .geojson o .json.');
+  }
+
+  // ─── UI ───
+  function setStatus(msg, isError = false) {
+    const el = document.getElementById('file-status');
+    el.textContent = msg || '';
+    el.className = 'city-msg' + (isError ? ' error' : '');
+  }
+  function renderFeatures() {
+    const cont = document.getElementById('file-features');
+    const acts = document.getElementById('file-actions');
+    if (featuresParseadas.length === 0) {
+      cont.innerHTML = '';
+      acts.style.display = 'none';
+      return;
+    }
+    cont.innerHTML = featuresParseadas.map((f, i) => `
+      <label class="file-feature">
+        <input type="checkbox" data-i="${i}" checked>
+        <span class="ff-name">${f.nombre}</span>
+        <span class="ff-type">${f.tipo}</span>
+        <span class="ff-coord">${f.lat.toFixed(3)}, ${f.lng.toFixed(3)}</span>
+      </label>
+    `).join('');
+    acts.style.display = 'flex';
+    actualizarSummary();
+    cont.querySelectorAll('input[type=checkbox]')
+      .forEach(cb => cb.addEventListener('change', actualizarSummary));
+  }
+  function actualizarSummary() {
+    const total = featuresParseadas.length;
+    const sel = document.querySelectorAll('#file-features input[type=checkbox]:checked').length;
+    document.getElementById('file-summary').textContent =
+      `${sel} de ${total} seleccionado${sel === 1 ? '' : 's'}`;
+    document.getElementById('btn-agregar-features').disabled = sel === 0;
+  }
+
+  async function manejarArchivo(file) {
+    if (!file) return;
+    featuresParseadas = [];
+    renderFeatures();
+    setStatus(`Procesando ${file.name}…`);
+    try {
+      const feats = await parsearArchivo(file);
+      if (feats.length === 0) {
+        setStatus('El archivo no contiene geometrías válidas.', true);
+        return;
+      }
+      featuresParseadas = feats;
+      setStatus(`✓ ${feats.length} elemento${feats.length === 1 ? '' : 's'} detectado${feats.length === 1 ? '' : 's'} en ${file.name}.`);
+      renderFeatures();
+    } catch (e) {
+      setStatus('Error: ' + e.message, true);
+    }
+  }
+
+  window.abrirArchivoModal = function () {
+    document.getElementById('file-overlay').classList.add('open');
+  };
+  window.cerrarArchivoModal = function () {
+    document.getElementById('file-overlay').classList.remove('open');
+  };
+  window.toggleSeleccionFeatures = function () {
+    const cbs = document.querySelectorAll('#file-features input[type=checkbox]');
+    const algunoDesmarcado = [...cbs].some(c => !c.checked);
+    cbs.forEach(c => (c.checked = algunoDesmarcado));
+    actualizarSummary();
+  };
+  window.agregarFeaturesSeleccionadas = function () {
+    const cbs = document.querySelectorAll('#file-features input[type=checkbox]:checked');
+    if (cbs.length === 0) return;
+    const arr = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+    let agregadas = 0;
+    cbs.forEach(cb => {
+      const f = featuresParseadas[+cb.dataset.i];
+      const dup = arr.some(c =>
+        c.nombre === f.nombre &&
+        Math.abs(c.lat - f.lat) < 1e-5 &&
+        Math.abs(c.lng - f.lng) < 1e-5
+      );
+      if (!dup) {
+        arr.push({ nombre: f.nombre, lat: f.lat, lng: f.lng });
+        agregadas++;
+      }
+    });
+    localStorage.setItem(LS_KEY, JSON.stringify(arr));
+    renderOptionsExternal();
+    // Sincronizar dentro del array ZONAS para que aparezcan en el mapa
+    if (typeof sincronizarZonasUsuario === 'function') sincronizarZonasUsuario();
+    cerrarArchivoModal();
+    // Seleccionar la primera agregada y centrar el mapa si está visible
+    const first = featuresParseadas[+cbs[0].dataset.i];
+    const sel = document.getElementById('zona-sel');
+    const valor = `${first.lat},${first.lng},${first.nombre}`;
+    if ([...sel.options].some(o => o.value === valor)) {
+      sel.value = valor;
+    }
+    if (typeof cargarTodo === 'function') cargarTodo();
+    // Si el mapa ya existe, recalcular tamaño y enmarcar los puntos cargados
+    setTimeout(() => {
+      if (typeof mapaInst !== 'undefined' && mapaInst) {
+        mapaInst.invalidateSize();
+        const seleccionadas = [...cbs].map(cb => featuresParseadas[+cb.dataset.i]);
+        if (seleccionadas.length === 1) {
+          mapaInst.setView([seleccionadas[0].lat, seleccionadas[0].lng], 10, { animate: true });
+        } else {
+          const bounds = L.latLngBounds(seleccionadas.map(f => [f.lat, f.lng]));
+          mapaInst.fitBounds(bounds.pad(0.4), { animate: true, maxZoom: 11 });
+        }
+      }
+    }, 800);
+    alert(`✓ ${agregadas} punto${agregadas === 1 ? '' : 's'} agregado${agregadas === 1 ? '' : 's'}.\nMira el mapa: aparece${agregadas === 1 ? '' : 'n'} con borde cian punteado (📌 "tuyo").`);
+  };
+
+  // Re-render del <select> compartido (replica la lógica del IIFE anterior)
+  function renderOptionsExternal() {
+    const sel = document.getElementById('zona-sel');
+    const label = 'Mis ciudades';
+    let og = [...sel.querySelectorAll('optgroup')].find(o => o.label === label);
+    if (!og) {
+      og = document.createElement('optgroup');
+      og.label = label;
+      sel.appendChild(og);
+    }
+    og.innerHTML = '';
+    JSON.parse(localStorage.getItem(LS_KEY) || '[]').forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = `${c.lat},${c.lng},${c.nombre}`;
+      opt.textContent = c.nombre;
+      og.appendChild(opt);
+    });
+    if (og.children.length === 0) og.remove();
+  }
+
+  // ─── eventos ───
+  const drop = document.getElementById('file-drop');
+  const input = document.getElementById('file-input');
+  input.addEventListener('change', e => manejarArchivo(e.target.files?.[0]));
+  ['dragenter', 'dragover'].forEach(ev =>
+    drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('drag'); })
+  );
+  ['dragleave', 'drop'].forEach(ev =>
+    drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('drag'); })
+  );
+  drop.addEventListener('drop', e => {
+    const f = e.dataTransfer?.files?.[0];
+    if (f) manejarArchivo(f);
+  });
+
+  document.getElementById('file-overlay').addEventListener('click', e => {
+    if (e.target.id === 'file-overlay') cerrarArchivoModal();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' &&
+        document.getElementById('file-overlay').classList.contains('open')) {
+      cerrarArchivoModal();
+    }
+  });
+})();
+</script>
+</body>
+</html>

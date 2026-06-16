@@ -1,0 +1,92 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import Header from '../components/Header.astro';
+import Hero from '../components/Hero.astro';
+import FiltrosBar from '../components/FiltrosBar.astro';
+import IniciativaCard from '../components/IniciativaCard.astro';
+import FuenteTile from '../components/FuenteTile.astro';
+import ContribuirSteps from '../components/ContribuirSteps.astro';
+import AcercaCards from '../components/AcercaCards.astro';
+import ContribuirModal from '../components/ContribuirModal.astro';
+import Footer from '../components/Footer.astro';
+
+// Orden dentro de cada sección:
+// 1) score (desc) — los más valorados arriba
+// 2) orden (asc) — desempate manual del curador
+// 3) nombre  — desempate alfabético
+const sortByRank = (a, b) =>
+  (b.data.score - a.data.score) ||
+  (a.data.orden - b.data.orden) ||
+  a.data.nombre.localeCompare(b.data.nombre);
+
+const iniciativasAll = await getCollection('iniciativas');
+const iniciativasComunidad = iniciativasAll
+  .filter((i) => i.data.tipo === 'comunidad')
+  .sort(sortByRank);
+const iniciativasOficiales = iniciativasAll
+  .filter((i) => i.data.tipo === 'oficial')
+  .sort(sortByRank);
+const fuentes = (await getCollection('fuentes')).sort(
+  (a, b) => a.data.orden - b.data.orden
+);
+---
+
+<Base>
+  <Header />
+  <Hero iniciativasCount={iniciativasComunidad.length} />
+  <FiltrosBar />
+
+  <div class="contenido">
+    <div id="iniciativas" style="padding-top:0.5rem">
+      <div class="sec-title">
+        Iniciativas de la comunidad
+        <span class="sec-sub">ordenadas por valoraciones (👍) · datasets, visores y scripts creados por usuarios</span>
+      </div>
+      <div class="iniciativas-grid" id="grid-iniciativas">
+        {iniciativasComunidad.map((ini) => <IniciativaCard iniciativa={ini} />)}
+      </div>
+      <div id="sin-resultados" class="hidden sin-resultados">
+        No se encontraron iniciativas con ese filtro.<br />
+        <button data-reset-filtros>Ver todas</button>
+      </div>
+    </div>
+
+    <div id="oficiales" style="padding-top:2.5rem">
+      <div class="sec-title">
+        Portales oficiales del Estado
+        <span class="sec-sub">administrados por instituciones públicas — solo los referenciamos</span>
+      </div>
+      <div class="iniciativas-grid">
+        {iniciativasOficiales.map((ini) => <IniciativaCard iniciativa={ini} />)}
+      </div>
+    </div>
+
+    <div id="fuentes" style="padding-top:2rem">
+      <div class="sec-title">Fuentes de datos institucionales</div>
+      <div class="fuentes-grid">
+        {fuentes.map((f) => (
+          <FuenteTile
+            logo={f.data.logo}
+            nombre={f.data.nombre}
+            descripcion={f.data.descripcion}
+            url={f.data.url}
+          />
+        ))}
+      </div>
+    </div>
+
+    <div id="contribuir" style="padding-top:2rem">
+      <div class="sec-title">Cómo añadir tu iniciativa</div>
+      <ContribuirSteps />
+    </div>
+
+    <div id="acerca" style="padding-top:2rem">
+      <div class="sec-title">Acerca del proyecto</div>
+      <AcercaCards />
+    </div>
+  </div>
+
+  <Footer />
+  <ContribuirModal />
+</Base>

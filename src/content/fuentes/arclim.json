@@ -1,0 +1,7 @@
+{
+  "logo": "ARClim",
+  "nombre": "Riesgo Climático",
+  "descripcion": "Atlas por comunas 1970-2070. API JSON gratuita.",
+  "url": "https://arclim.mma.gob.cl/atlas/api/",
+  "orden": 100
+}

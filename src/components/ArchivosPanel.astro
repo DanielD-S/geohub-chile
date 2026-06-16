@@ -1,0 +1,33 @@
+---
+interface Grupo {
+  titulo: string;
+  items: { nombre: string; size: string; url: string }[];
+}
+interface Props {
+  id: string;
+  release: string;
+  grupos: Grupo[];
+}
+const { id, release, grupos } = Astro.props;
+---
+
+<div class="archivos-panel" id={`archivos-${id}`}>
+  <div class="archivos-hdr">
+    <h4>Archivos disponibles</h4>
+    <span class="archivos-release">{release}</span>
+  </div>
+  <div class="archivos-grupos">
+    {grupos.map((g) => (
+      <div>
+        <div class="archivo-grupo-title">{g.titulo}</div>
+        {g.items.map((it) => (
+          <div class="archivos-fila">
+            <span class="archivo-nombre">{it.nombre}</span>
+            <span class="archivo-size">{it.size}</span>
+            <a class="archivo-dl" href={it.url} target="_blank" rel="noopener">↓ Descargar</a>
+          </div>
+        ))}
+      </div>
+    ))}
+  </div>
+</div>

@@ -1,0 +1,50 @@
+name: Sync valoraciones (👍 → score)
+
+on:
+  schedule:
+    # 06:00 UTC = 03:00 Chile (verano) / 02:00 (invierno).
+    # Una vez al día es suficiente; el form de propuesta no se ve afectado.
+    - cron: '0 6 * * *'
+  workflow_dispatch: # botón "Run workflow" manual desde la UI
+
+permissions:
+  contents: write
+  actions: write   # necesario para que `gh workflow run` dispare deploy.yml
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Ejecutar sync
+        id: sync
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/sync-scores.mjs
+
+      - name: Commitear cambios si hay
+        id: commit
+        run: |
+          if [[ -n $(git status --porcelain src/content/iniciativas) ]]; then
+            git config user.name  "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add src/content/iniciativas
+            git commit -m "chore(scores): sync valoraciones desde GitHub issues"
+            git push
+            echo "pushed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Sin cambios — todos los scores ya están al día."
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Disparar redeploy (workflow_dispatch de deploy.yml)
+        if: steps.commit.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run deploy.yml --ref ${{ github.ref_name }}

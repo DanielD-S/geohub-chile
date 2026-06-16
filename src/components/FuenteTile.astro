@@ -1,0 +1,15 @@
+---
+interface Props {
+  logo: string;
+  nombre: string;
+  descripcion: string;
+  url: string;
+}
+const { logo, nombre, descripcion, url } = Astro.props;
+---
+
+<a class="fuente-tile" href={url} target="_blank" rel="noopener">
+  <div class="fuente-logo">{logo}</div>
+  <div class="fuente-nombre">{nombre}</div>
+  <div class="fuente-desc">{descripcion}</div>
+</a>

@@ -1,0 +1,37 @@
+---
+const principios = [
+  { titulo: 'Abierto', desc: 'Todo el código y metadatos en GitHub público' },
+  { titulo: 'Gratuito', desc: 'Sin costos de acceso, sin registros obligatorios' },
+  { titulo: 'Oficial', desc: 'Solo datos de fuentes institucionales citables' },
+  { titulo: 'Documentado', desc: 'Cada capa con metadatos, EPSG y licencia' },
+  { titulo: 'Colaborativo', desc: 'Cualquiera puede proponer y mejorar' },
+];
+---
+
+<div class="acerca-grid">
+  <div class="acerca-card">
+    <h3>¿Qué es GeoHub Chile?</h3>
+    <p>
+      <strong>No es el repositorio oficial</strong> — ese rol lo cumple
+      <a href="https://www.ide.cl" target="_blank" rel="noopener" style="color:var(--verde)">IDE Chile</a>,
+      el portal nacional del Estado, junto con BCN, SERNAGEOMIN, DGA y otras
+      instituciones que listamos en "Portales oficiales".
+      <br /><br />
+      <strong>Esto es un complemento de la comunidad</strong>: un espacio para
+      publicar datasets públicos que no están listos para descarga directa
+      (catastros pre-procesados, conversiones a GeoJSON, snapshots de APIs),
+      junto con visores, scripts y herramientas creadas por usuarios.
+      <br /><br />
+      El objetivo es reducir la fricción de acceso a información geoespacial
+      pública y compartir el trabajo de quienes ya la procesaron.
+    </p>
+  </div>
+  <div class="acerca-card">
+    <h3>Principios</h3>
+    <div class="acerca-list">
+      {principios.map((p) => (
+        <div>⬡ <strong>{p.titulo}</strong> — {p.desc}</div>
+      ))}
+    </div>
+  </div>
+</div>

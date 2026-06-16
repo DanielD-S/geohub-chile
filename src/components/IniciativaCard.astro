@@ -1,0 +1,144 @@
+---
+import ArchivosPanel from './ArchivosPanel.astro';
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  iniciativa: CollectionEntry<'iniciativas'>;
+}
+const { iniciativa } = Astro.props;
+const data = iniciativa.data;
+const id = iniciativa.slug;
+
+const catColors: Record<string, { bg: string; fg: string; border: string }> = {
+  mineria:  { bg: 'rgba(245,197,24,0.12)', fg: 'var(--cat-mineria)', border: 'rgba(245,197,24,0.3)' },
+  ambiental:{ bg: 'rgba(61,214,140,0.1)',  fg: 'var(--cat-amb)',     border: 'rgba(61,214,140,0.25)' },
+  riesgo:   { bg: 'rgba(230,57,70,0.1)',   fg: 'var(--cat-riesgo)',  border: 'rgba(230,57,70,0.25)' },
+  hidrico:  { bg: 'rgba(76,201,240,0.1)',  fg: 'var(--cat-hidro)',   border: 'rgba(76,201,240,0.25)' },
+  social:   { bg: 'rgba(167,139,250,0.1)', fg: 'var(--cat-social)',  border: 'rgba(167,139,250,0.25)' },
+  admin:    { bg: 'rgba(251,133,0,0.1)',   fg: 'var(--cat-admin)',   border: 'rgba(251,133,0,0.25)' },
+  energia:  { bg: 'rgba(244,130,10,0.1)',  fg: 'var(--cat-energia)', border: 'rgba(244,130,10,0.25)' },
+};
+const catLabels: Record<string, string> = {
+  mineria: 'Minería',
+  ambiental: 'Ambiental',
+  riesgo: 'Riesgos',
+  hidrico: 'Hídrico',
+  social: 'Social',
+  admin: 'Admin. territorial',
+  energia: 'Energía',
+};
+const c = catColors[data.categoria];
+const iconoBg = data.iconoBg || c.bg;
+const hasArchivos = !!data.archivos;
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+// URLs relativas (./algo, /algo, algo.html) reciben prefijo de base. Absolutas pasan tal cual.
+const resolveUrl = (u?: string) => {
+  if (!u) return u;
+  if (/^https?:\/\//i.test(u) || u.startsWith('mailto:') || u.startsWith('#')) return u;
+  if (u.startsWith('./')) return `${base}/${u.slice(2)}`;
+  if (u.startsWith('/'))  return `${base}${u}`;
+  return `${base}/${u}`;
+};
+
+// URL del botón "👍 Valorar":
+// - Si la iniciativa tiene `valoracionIssue: 42`, lleva a ese issue.
+// - Si no, abre un issue nuevo pre-rellenado para crear el thread de valoración.
+const repo = 'DanielD-S/geohub-chile';
+const valoracionUrl = data.valoracionIssue
+  ? `https://github.com/${repo}/issues/${data.valoracionIssue}`
+  : (() => {
+      const title = `[Valoración] ${data.nombre}`;
+      const body = [
+        `Hilo de valoración para **${data.nombre}** (\`${id}\`).`,
+        '',
+        'Reacciona con 👍 si esta iniciativa te resultó útil.',
+        'Comenta si quieres aportar mejoras, reportar problemas o sugerir cambios.',
+        '',
+        '_Auto-generado al hacer clic en "Valorar" desde el sitio._',
+      ].join('\n');
+      const p = new URLSearchParams({ title, body, labels: 'valoracion' });
+      return `https://github.com/${repo}/issues/new?${p.toString()}`;
+    })();
+---
+
+<div class="iniciativa-card" data-cat={data.categoria} data-tags={data.tags}>
+  <div class="card-top">
+    <div class="card-icon" style={`background:${iconoBg}`}>{data.icono}</div>
+    <div class="card-body">
+      <div class="card-meta">
+        <span
+          class="cat-badge"
+          style={`background:${c.bg};color:${c.fg};border:1px solid ${c.border}`}
+        >
+          {catLabels[data.categoria]}
+        </span>
+        {data.categoriaExtra && (
+          <span
+            class="cat-badge"
+            style={`background:rgba(76,201,240,0.08);color:${data.categoriaExtra.color};border:1px solid rgba(76,201,240,0.2);margin-left:2px`}
+          >
+            {data.categoriaExtra.label}
+          </span>
+        )}
+        <span class="estado-badge">
+          <span class={`estado-dot estado-${data.estado}`}></span>{data.estadoTexto}
+        </span>
+      </div>
+      <div class="card-title-text">{data.nombre}</div>
+      <p class="card-desc">{data.descripcion}</p>
+    </div>
+  </div>
+
+  {data.capas.length > 0 && (
+    <div class="capas-list">
+      {data.capas.map((cap) => <span class="capa-tag">{cap}</span>)}
+      {data.capasExtra && <span class="capa-tag-more">{data.capasExtra}</span>}
+    </div>
+  )}
+
+  <div class="card-footer">
+    {data.stats.map((s) =>
+      s.valor ? (
+        <span class="card-stat"><strong>{s.valor}</strong> {s.label}</span>
+      ) : (
+        <span class="card-stat">{s.label}</span>
+      )
+    )}
+    <div class="card-actions">
+      <a
+        class="btn-card btn-card-valorar"
+        href={valoracionUrl}
+        target="_blank"
+        rel="noopener"
+        title="Valorar en GitHub (requiere cuenta)"
+      >
+        👍 {data.score > 0 ? data.score : ''}<span class="valorar-label">Valorar</span>
+      </a>
+      {data.acciones.map((a) => {
+        if (a.tipo === 'ver' && hasArchivos) {
+          return (
+            <button class="btn-card btn-card-ver" data-toggle-archivos={id}>
+              {a.texto} ▾
+            </button>
+          );
+        }
+        const cls =
+          a.tipo === 'github'
+            ? 'btn-card btn-card-gh'
+            : a.tipo === 'ver'
+              ? 'btn-card btn-card-ver'
+              : a.tipo === 'externo'
+                ? 'btn-card btn-card-externo'
+                : 'btn-card btn-card-desc';
+        return (
+          <a class={cls} href={resolveUrl(a.url)} target="_blank" rel="noopener">{a.texto}</a>
+        );
+      })}
+    </div>
+  </div>
+
+  {data.archivos && (
+    <ArchivosPanel id={id} release={data.archivos.release} grupos={data.archivos.grupos} />
+  )}
+</div>

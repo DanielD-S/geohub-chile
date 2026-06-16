@@ -1,0 +1,7 @@
+{
+  "logo": "NASA FIRMS",
+  "nombre": "Focos de incendio",
+  "descripcion": "Detecciones MODIS/VIIRS en tiempo real y archivos.",
+  "url": "https://firms.modaps.eosdis.nasa.gov/country/",
+  "orden": 70
+}
