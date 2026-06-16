@@ -1,5 +1,6 @@
 ---
 nombre: "IDE Chile — Portal Nacional"
+valoracionIssue: 3
 tipo: oficial
 categoria: admin
 icono: "🌐"

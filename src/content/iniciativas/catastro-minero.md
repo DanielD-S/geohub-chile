@@ -1,5 +1,6 @@
 ---
 nombre: "Catastro Minero Chile"
+valoracionIssue: 2
 categoria: mineria
 icono: "⛏️"
 estado: activo
