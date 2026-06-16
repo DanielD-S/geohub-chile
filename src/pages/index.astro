@@ -1,5 +1,5 @@
 ---
-import { getCollection } from 'astro:content';
+import { getCollection, type CollectionEntry } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import Header from '../components/Header.astro';
 import Hero from '../components/Hero.astro';
@@ -15,7 +15,8 @@ import Footer from '../components/Footer.astro';
 // 1) score (desc) — los más valorados arriba
 // 2) orden (asc) — desempate manual del curador
 // 3) nombre  — desempate alfabético
-const sortByRank = (a, b) =>
+type Ini = CollectionEntry<'iniciativas'>;
+const sortByRank = (a: Ini, b: Ini) =>
   (b.data.score - a.data.score) ||
   (a.data.orden - b.data.orden) ||
   a.data.nombre.localeCompare(b.data.nombre);
