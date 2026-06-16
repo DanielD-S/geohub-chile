@@ -31,6 +31,45 @@ const c = catColors[data.categoria];
 const iconoBg = data.iconoBg || c.bg;
 const hasArchivos = !!data.archivos;
 
+// Iconos SVG outline (estilo Lucide, MIT). Se eligen por slug y, si no
+// hay match, caen a uno genérico por categoría. Color heredado vía
+// `currentColor` para combinar con el badge de la categoría.
+const ICONOS_SVG: Record<string, string> = {
+  // Pickaxe estilizado (minería)
+  'catastro-minero':
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 12 4 22.5"/><path d="M6 17h6"/><path d="M14.531 12.469 18 9c1.658-1.659 1.243-3.66 0-5l-1-1c-1.5-1.5-3.341-1.658-5 0L8.5 6.5"/><path d="M16 14 9 7"/></svg>',
+  // Hoja (ambiental)
+  'catastro-ambiental':
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19.2 2.96a1 1 0 0 1 1.8.7 53.4 53.4 0 0 1-2 12.84A7 7 0 0 1 11 20z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/></svg>',
+  // Alert triangle (riesgos)
+  'monitor-riesgos':
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><circle cx="12" cy="17" r="0.5" fill="currentColor"/></svg>',
+  // Edificio (SII predios)
+  'sii-predios':
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M8 7h2M14 7h2M8 11h2M14 11h2M8 15h2M14 15h2"/><path d="M10 21v-3h4v3"/></svg>',
+  // Droplet (hídrico)
+  'recursos-hidricos':
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>',
+  // Mapa con divisiones (BCN)
+  'limites-bcn':
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894L8.106 3.447a2 2 0 0 1 1.788 0z"/><path d="M9 4v13"/><path d="M15 7v13"/></svg>',
+  // Globo (IDE Chile)
+  'ide-chile':
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14.5 14.5 0 0 1 0 18M12 3a14.5 14.5 0 0 0 0 18"/></svg>',
+};
+
+// Fallback genérico por categoría si el slug no está mapeado arriba
+const ICONOS_CAT: Record<string, string> = {
+  mineria:   ICONOS_SVG['catastro-minero'],
+  ambiental: ICONOS_SVG['catastro-ambiental'],
+  riesgo:    ICONOS_SVG['monitor-riesgos'],
+  hidrico:   ICONOS_SVG['recursos-hidricos'],
+  admin:     ICONOS_SVG['limites-bcn'],
+  social:    ICONOS_SVG['ide-chile'],
+  energia:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+};
+const iconoSvg = ICONOS_SVG[id] || ICONOS_CAT[data.categoria] || '';
+
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 // URLs relativas (./algo, /algo, algo.html) reciben prefijo de base. Absolutas pasan tal cual.
 const resolveUrl = (u?: string) => {
@@ -64,7 +103,9 @@ const valoracionUrl = data.valoracionIssue
 
 <div class="iniciativa-card" data-cat={data.categoria} data-tags={data.tags}>
   <div class="card-top">
-    <div class="card-icon" style={`background:${iconoBg}`}>{data.icono}</div>
+    <div class="card-icon" style={`background:${iconoBg};color:${c.fg}`}>
+      <Fragment set:html={iconoSvg} />
+    </div>
     <div class="card-body">
       <div class="card-meta">
         <span
