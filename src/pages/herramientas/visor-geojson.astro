@@ -12,31 +12,15 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 >
   <Header />
 
-  <!-- Leaflet -->
+  <!-- Librerías client-side (mismas que ya usa el visor de riesgos) -->
   <link
     rel="stylesheet"
     href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
-    integrity="sha512-h9FcoyWjHcOcmEVkxOfTLnmZFWIH0iZhZT1H2TbOq55xssQGEJHEaIm+PgoUaZbRvQTNTluNOEfb1ZRy6D3BOw=="
-    crossorigin=""
   />
-  <script
-    is:inline
-    src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"
-    integrity="sha512-BB3hKbKWOc9Ez/TAwyWxNXeoV9c1v6FIeYiBieIWkpLjauysF18NzgR1MBNBXf8/KABdlkX68nAhlwcDFLGPCQ=="
-    crossorigin=""
-  ></script>
-  <script
-    is:inline
-    src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"
-  ></script>
-  <script
-    is:inline
-    src="https://cdnjs.cloudflare.com/ajax/libs/togeojson/0.16.0/togeojson.min.js"
-  ></script>
-  <script
-    is:inline
-    src="https://unpkg.com/shpjs@4.0.4/dist/shp.min.js"
-  ></script>
+  <script is:inline src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script is:inline src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script is:inline src="https://cdnjs.cloudflare.com/ajax/libs/togeojson/0.16.0/togeojson.min.js"></script>
+  <script is:inline src="https://unpkg.com/shpjs@4.0.4/dist/shp.min.js"></script>
 
   <div class="herr-page">
     <div class="herr-back">
