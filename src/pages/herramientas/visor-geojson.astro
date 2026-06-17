@@ -13,11 +13,11 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   <Header />
 
   <!-- Librerías client-side (mismas que ya usa el visor de riesgos) -->
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
-  />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.min.css" />
   <script is:inline src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script is:inline src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
   <script is:inline src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script is:inline src="https://cdnjs.cloudflare.com/ajax/libs/togeojson/0.16.0/togeojson.min.js"></script>
   <script is:inline src="https://unpkg.com/shpjs@4.0.4/dist/shp.min.js"></script>
@@ -386,59 +386,106 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     font-size: 12px;
   }
 
-  /* Override popups de Leaflet para tema oscuro */
-  .mapa-tool .leaflet-popup-content-wrapper {
-    background: var(--surface);
-    color: var(--t1);
-    border: 1px solid var(--border2);
-    border-radius: 6px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+</style>
+
+<!-- ════════════════════════════════════════════════════════════════
+     ESTILOS GLOBALES PARA LEAFLET
+     Astro scopea los <style> por defecto, pero Leaflet inyecta sus
+     elementos en runtime — por eso necesitan ser is:global o nunca
+     aplicarán.
+══════════════════════════════════════════════════════════════════ -->
+<style is:global>
+  /* Popups dark theme */
+  .leaflet-popup-content-wrapper {
+    background: #131920 !important;
+    color: #e8f0fe !important;
+    border: 1px solid #2d4155 !important;
+    border-radius: 6px !important;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.55) !important;
   }
-  .mapa-tool .leaflet-popup-tip {
-    background: var(--surface);
-    border: 1px solid var(--border2);
-    box-shadow: none;
+  .leaflet-popup-tip {
+    background: #131920 !important;
+    border: 1px solid #2d4155 !important;
+    box-shadow: none !important;
   }
-  .mapa-tool .leaflet-popup-content {
-    margin: 10px 14px;
-    color: var(--t1);
-    line-height: 1.5;
+  .leaflet-popup-content {
+    margin: 10px 14px !important;
+    color: #e8f0fe !important;
+    line-height: 1.5 !important;
+    font-family: 'Courier New', monospace;
+    font-size: 11.5px;
   }
-  .mapa-tool .leaflet-popup-content table {
+  .leaflet-popup-content table {
     border-collapse: collapse;
     width: 100%;
   }
-  .mapa-tool .leaflet-popup-content table td {
-    padding: 2px 0;
+  .leaflet-popup-content table td {
+    padding: 3px 6px 3px 0;
     vertical-align: top;
+    word-break: break-word;
   }
-  .mapa-tool .leaflet-container a.leaflet-popup-close-button {
-    color: var(--t2);
-    font-size: 18px;
-    padding: 6px 8px 0 0;
+  .leaflet-popup-content table td:first-child {
+    color: #8fa3bf;     /* claves: gris suave */
+    font-weight: 500;
+    white-space: nowrap;
   }
-  .mapa-tool .leaflet-container a.leaflet-popup-close-button:hover {
-    color: var(--t1);
-    background: transparent;
+  .leaflet-popup-content table td:last-child {
+    color: #e8f0fe;     /* valores: blanco crema */
   }
-  /* Controles de zoom acordes al tema */
-  .mapa-tool .leaflet-control-zoom a {
-    background: var(--surface);
-    color: var(--t1);
-    border: 1px solid var(--border);
+  .leaflet-popup-content a.popup-link {
+    color: #2cd4e0 !important;
+    text-decoration: underline;
+    text-decoration-color: rgba(44,212,224,0.4);
+    text-underline-offset: 2px;
+    word-break: break-all;
   }
-  .mapa-tool .leaflet-control-zoom a:hover {
-    background: var(--surface2);
-    color: var(--verde);
-    border-color: var(--verde-dim);
+  .leaflet-popup-content a.popup-link:hover {
+    color: #5ee0eb !important;
+    text-decoration-color: #2cd4e0;
   }
-  .mapa-tool .leaflet-control-attribution {
+  .leaflet-container a.leaflet-popup-close-button {
+    color: #8fa3bf !important;
+    font-size: 18px !important;
+    padding: 6px 8px 0 0 !important;
+  }
+  .leaflet-container a.leaflet-popup-close-button:hover {
+    color: #e8f0fe !important;
+    background: transparent !important;
+  }
+  /* Controles de zoom */
+  .leaflet-control-zoom a {
+    background: #131920 !important;
+    color: #e8f0fe !important;
+    border: 1px solid #21303f !important;
+  }
+  .leaflet-control-zoom a:hover {
+    background: #1a2230 !important;
+    color: #3dd68c !important;
+    border-color: #239960 !important;
+  }
+  /* Attribution */
+  .leaflet-control-attribution {
     background: rgba(13,17,23,0.85) !important;
-    color: var(--t3) !important;
+    color: #4a6580 !important;
+    font-size: 10px !important;
   }
-  .mapa-tool .leaflet-control-attribution a {
-    color: var(--t2) !important;
+  .leaflet-control-attribution a {
+    color: #8fa3bf !important;
   }
+  /* Clusters — tonos cian coherentes con el tema */
+  .marker-cluster {
+    background: rgba(44,212,224,0.18) !important;
+  }
+  .marker-cluster div {
+    background: rgba(44,212,224,0.55) !important;
+    color: #06121a !important;
+    font-weight: 700 !important;
+    font-family: 'IBM Plex Mono', monospace !important;
+    font-size: 11px !important;
+  }
+  .marker-cluster-small div { background: rgba(61,214,140,0.65) !important; }
+  .marker-cluster-medium div { background: rgba(244,130,10,0.7) !important; color: #06121a !important; }
+  .marker-cluster-large div { background: rgba(230,57,70,0.75) !important; color: #fff !important; }
 </style>
 
 <script is:inline>
@@ -451,6 +498,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
     let map = null;
     let layer = null;
+    let clusterLayer = null;
     let geojsonActual = null;
     let nombreActual = '';
 
@@ -592,38 +640,100 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       L.control.zoom({ position: 'topright' }).addTo(map);
     }
 
+    // Construye el HTML de un popup. Detecta URLs y las hace clicables.
+    function popupHtml(props) {
+      const entries = Object.entries(props || {});
+      if (entries.length === 0) {
+        return '<div style="color:#8fa3bf;font-style:italic">(sin propiedades)</div>';
+      }
+      const filas = entries.slice(0, 14).map(([k, v]) => {
+        const valStr = String(v ?? '');
+        let valHtml;
+        if (/^https?:\/\//i.test(valStr)) {
+          const acortado = valStr.length > 45 ? valStr.slice(0, 42) + '…' : valStr;
+          valHtml = `<a class="popup-link" href="${escapar(valStr)}" target="_blank" rel="noopener">${escapar(acortado)} ↗</a>`;
+        } else if (valStr === '' || valStr === 'null' || valStr === 'undefined') {
+          valHtml = '<span style="color:#4a6580">—</span>';
+        } else {
+          valHtml = escapar(valStr.length > 80 ? valStr.slice(0, 78) + '…' : valStr);
+        }
+        return `<tr><td>${escapar(k)}</td><td>${valHtml}</td></tr>`;
+      }).join('');
+      const masFilas = entries.length > 14
+        ? `<tr><td colspan="2" style="color:#4a6580;padding-top:6px;font-style:italic">+${entries.length - 14} propiedades más (descarga el GeoJSON para verlas)</td></tr>`
+        : '';
+      return `<table>${filas}${masFilas}</table>`;
+    }
+
     function renderMapa(geojson) {
       inicializarMapaSiHaceFalta();
-      if (layer) {
-        layer.remove();
-        layer = null;
-      }
-      layer = L.geoJSON(geojson, {
-        style: () => ({
-          color: '#2cd4e0',
-          weight: 2,
-          fillColor: '#2cd4e0',
-          fillOpacity: 0.15,
-        }),
-        pointToLayer: (_f, latlng) =>
-          L.circleMarker(latlng, {
-            radius: 6, color: '#2cd4e0', weight: 2,
-            fillColor: '#2cd4e0', fillOpacity: 0.6,
-          }),
-        onEachFeature: (feat, lyr) => {
-          const props = feat.properties || {};
-          const filas = Object.entries(props)
-            .slice(0, 12)
-            .map(([k, v]) => `<tr><td style="color:#8fa3bf;padding-right:8px">${escapar(k)}</td><td style="color:#e8f0fe">${escapar(String(v ?? ''))}</td></tr>`)
-            .join('');
-          lyr.bindPopup(`<div style="font-family:'Courier New',monospace;font-size:11px;max-width:260px"><table>${filas || '<tr><td>(sin propiedades)</td></tr>'}</table></div>`);
-        },
-      }).addTo(map);
+      // Limpiar capas previas
+      if (layer) { layer.remove(); layer = null; }
+      if (clusterLayer) { clusterLayer.remove(); clusterLayer = null; }
 
-      const bounds = layer.getBounds();
-      if (bounds.isValid()) {
-        map.fitBounds(bounds, { padding: [20, 20], maxZoom: 14 });
-        return bounds;
+      const features = geojson.features || [];
+      const puntos = features.filter(f =>
+        f.geometry?.type === 'Point' || f.geometry?.type === 'MultiPoint'
+      );
+      const otros = features.filter(f =>
+        f.geometry?.type !== 'Point' && f.geometry?.type !== 'MultiPoint'
+      );
+
+      const POPUP_OPTS = { maxWidth: 360, minWidth: 220, autoPanPadding: [40, 40] };
+      const allBounds = L.latLngBounds([]);
+
+      // Polígonos / líneas → capa normal
+      if (otros.length > 0) {
+        layer = L.geoJSON(
+          { type: 'FeatureCollection', features: otros },
+          {
+            style: () => ({
+              color: '#2cd4e0', weight: 2,
+              fillColor: '#2cd4e0', fillOpacity: 0.15,
+            }),
+            onEachFeature: (feat, lyr) => {
+              lyr.bindPopup(popupHtml(feat.properties), POPUP_OPTS);
+            },
+          }
+        ).addTo(map);
+        const b = layer.getBounds();
+        if (b.isValid()) allBounds.extend(b);
+      }
+
+      // Puntos → cluster si son muchos, marcador simple si son pocos
+      if (puntos.length > 0) {
+        const usarCluster = puntos.length > 50 && window.L?.markerClusterGroup;
+        clusterLayer = usarCluster
+          ? L.markerClusterGroup({
+              showCoverageOnHover: false,
+              spiderfyOnMaxZoom: true,
+              maxClusterRadius: 55,
+              chunkedLoading: true,
+            })
+          : L.featureGroup();
+
+        L.geoJSON(
+          { type: 'FeatureCollection', features: puntos },
+          {
+            pointToLayer: (_f, latlng) =>
+              L.circleMarker(latlng, {
+                radius: 6, color: '#2cd4e0', weight: 2,
+                fillColor: '#2cd4e0', fillOpacity: 0.65,
+              }),
+            onEachFeature: (feat, lyr) => {
+              lyr.bindPopup(popupHtml(feat.properties), POPUP_OPTS);
+            },
+          }
+        ).eachLayer(l => clusterLayer.addLayer(l));
+
+        clusterLayer.addTo(map);
+        const b = clusterLayer.getBounds();
+        if (b.isValid()) allBounds.extend(b);
+      }
+
+      if (allBounds.isValid()) {
+        map.fitBounds(allBounds, { padding: [20, 20], maxZoom: 14 });
+        return allBounds;
       }
       return null;
     }
@@ -771,6 +881,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
     $('btn-limpiar').addEventListener('click', () => {
       if (layer) { layer.remove(); layer = null; }
+      if (clusterLayer) { clusterLayer.remove(); clusterLayer = null; }
       geojsonActual = null;
       nombreActual = '';
       fileInput.value = '';
