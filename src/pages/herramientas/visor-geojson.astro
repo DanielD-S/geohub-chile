@@ -58,6 +58,48 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       </div>
     </label>
 
+    <details class="dz-help">
+      <summary>¿No sabes qué archivo subir? Mira aquí ↓</summary>
+      <div class="dz-help-content">
+        <div class="dz-help-item">
+          <strong>.geojson</strong> o <strong>.json</strong>
+          <p>
+            Es un archivo de texto con coordenadas y datos. Es el formato más usado
+            en aplicaciones web modernas. Lo exportan programas como
+            <em>QGIS</em>, <em>ArcGIS</em>, <em>Mapshaper</em> o el editor en línea
+            <em>geojson.io</em>.
+          </p>
+        </div>
+        <div class="dz-help-item">
+          <strong>.kml</strong> o <strong>.kmz</strong>
+          <p>
+            Es lo que exporta <em>Google Earth</em> y <em>Google My Maps</em>.
+            Si dibujaste un punto o área en Google Earth Pro y le diste "Guardar
+            lugar como…", obtienes uno de estos. KMZ es simplemente un KML
+            comprimido.
+          </p>
+        </div>
+        <div class="dz-help-item">
+          <strong>.zip (shapefile)</strong>
+          <p>
+            El formato clásico de los sistemas de información geográfica. Un
+            shapefile son varios archivos juntos (<code>.shp</code>,
+            <code>.dbf</code>, <code>.shx</code>, <code>.prj</code>). Antes de
+            subirlo aquí, comprime todos esos archivos en un único
+            <code>.zip</code>.
+          </p>
+        </div>
+        <div class="dz-help-item">
+          <strong>¿Tengo un Excel, CSV o PDF?</strong>
+          <p>
+            Este visor no los lee directamente. Si tienes coordenadas en un
+            CSV, podemos agregar esa función — abre un issue en GitHub
+            describiendo tu caso.
+          </p>
+        </div>
+      </div>
+    </details>
+
     <div id="status" class="status"></div>
 
     <!-- Resultado: panel de info + mapa + tabla de propiedades -->
@@ -150,21 +192,90 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   }
   .dz-limits strong { color: var(--t2); font-weight: 600; }
 
-  /* Status */
+  /* Status (mensajes ricos: título + cuerpo + sugerencia) */
   .status:empty { display: none; }
   .status {
-    padding: 0.6rem 0.85rem;
+    padding: 0.85rem 1rem;
     background: var(--surface2); border: 1px solid var(--border);
+    border-left: 3px solid var(--border2);
     border-radius: var(--r); margin-bottom: 1rem;
+  }
+  .status-title {
+    font-size: 13.5px; font-weight: 600;
+    color: var(--t1); line-height: 1.4;
+  }
+  .status-body {
+    margin-top: 0.4rem;
     font-size: 12.5px; color: var(--t2);
+    line-height: 1.65; max-width: 80ch;
+  }
+  .status-hint {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--border);
+    font-size: 12px; color: var(--t3);
+    line-height: 1.6;
   }
   .status.error {
-    background: rgba(230,57,70,0.1); border-color: rgba(230,57,70,0.3);
-    color: #ff6b75;
+    background: rgba(230,57,70,0.06);
+    border-color: rgba(230,57,70,0.2);
+    border-left-color: #e63946;
   }
+  .status.error .status-title { color: #ff8a92; }
+  .status.error .status-body { color: #d9b4b8; }
+  .status.error .status-hint { color: #b59a9c; }
   .status.success {
-    background: rgba(61,214,140,0.08); border-color: var(--verde-dim);
+    background: rgba(61,214,140,0.05);
+    border-color: var(--verde-dim);
+    border-left-color: var(--verde);
+  }
+  .status.success .status-title { color: var(--verde); }
+  .status.success .status-body { color: var(--t2); }
+
+  /* Help expandible bajo el dropzone */
+  .dz-help {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    margin-bottom: 1rem;
+  }
+  .dz-help summary {
+    padding: 0.7rem 1rem;
+    cursor: pointer;
+    font-family: var(--mono); font-size: 12px;
+    color: var(--t2); user-select: none;
+    list-style: none;
+  }
+  .dz-help summary::-webkit-details-marker { display: none; }
+  .dz-help summary:hover { color: var(--verde); }
+  .dz-help[open] summary {
+    border-bottom: 1px solid var(--border);
+    color: var(--t1);
+  }
+  .dz-help-content {
+    padding: 1rem 1.25rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem 1.5rem;
+  }
+  .dz-help-item strong {
+    color: var(--verde); font-size: 13px;
+    font-family: var(--mono);
+  }
+  .dz-help-item code {
+    background: var(--surface2); border: 1px solid var(--border);
+    padding: 0px 4px; border-radius: 3px;
+    font-family: var(--mono); font-size: 10.5px;
     color: var(--verde);
+  }
+  .dz-help-item em {
+    color: var(--t1); font-style: normal;
+    font-weight: 500;
+  }
+  .dz-help-item p {
+    margin-top: 0.3rem;
+    font-size: 12px; color: var(--t2);
+    line-height: 1.65;
   }
 
   /* Resumen */
@@ -343,9 +454,32 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     let geojsonActual = null;
     let nombreActual = '';
 
-    function setStatus(msg, clase = '') {
-      status.textContent = msg || '';
-      status.className = 'status' + (clase ? ' ' + clase : '');
+    function escapar(s) {
+      return String(s).replace(/[&<>"']/g, m =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])
+      );
+    }
+
+    // Mensaje rico: { title, body?, hint? } + tipo (success/error)
+    function setStatus(msgOrTitle, clase = '', body = '', hint = '') {
+      if (!msgOrTitle) {
+        status.innerHTML = '';
+        status.className = 'status';
+        return;
+      }
+      // Si llaman con objeto, desestructurar
+      let title = msgOrTitle, type = clase;
+      if (typeof msgOrTitle === 'object') {
+        title = msgOrTitle.title;
+        body  = msgOrTitle.body  || '';
+        hint  = msgOrTitle.hint  || '';
+        type  = msgOrTitle.type  || clase;
+      }
+      const parts = [`<div class="status-title">${escapar(title)}</div>`];
+      if (body) parts.push(`<div class="status-body">${escapar(body)}</div>`);
+      if (hint) parts.push(`<div class="status-hint">💡 ${escapar(hint)}</div>`);
+      status.innerHTML = parts.join('');
+      status.className = 'status' + (type ? ' ' + type : '');
     }
 
     // ─── Parsers ───
@@ -360,26 +494,41 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       }
 
       if (nombre.endsWith('.kml')) {
-        if (!window.toGeoJSON) throw new Error('Librería toGeoJSON no cargada');
+        if (!window.toGeoJSON) throw libNoCargada('procesar KML');
         const txt = await file.text();
         const xml = new DOMParser().parseFromString(txt, 'text/xml');
         return { formato: 'KML', geojson: window.toGeoJSON.kml(xml) };
       }
 
       if (nombre.endsWith('.kmz')) {
-        if (!window.JSZip || !window.toGeoJSON) throw new Error('Librerías no cargadas');
+        if (!window.JSZip || !window.toGeoJSON) throw libNoCargada('procesar KMZ');
         const zip = await window.JSZip.loadAsync(await file.arrayBuffer());
         const kmlEntry = Object.values(zip.files)
           .find(f => !f.dir && f.name.toLowerCase().endsWith('.kml'));
-        if (!kmlEntry) throw new Error('El KMZ no contiene ningún archivo .kml');
+        if (!kmlEntry) {
+          throw new ErrorAmigable(
+            'Este KMZ está vacío por dentro.',
+            'Un archivo .kmz es básicamente un .zip que adentro debe traer un archivo .kml con los datos del mapa. El que subiste no contiene ese .kml interno, así que no hay nada para leer.',
+            'Si lo exportaste de Google Earth, prueba abrirlo allá primero para verificar que tiene contenido. Si el archivo se ve corrupto, vuelve a exportarlo.'
+          );
+        }
         const txt = await kmlEntry.async('string');
         const xml = new DOMParser().parseFromString(txt, 'text/xml');
         return { formato: 'KMZ', geojson: window.toGeoJSON.kml(xml) };
       }
 
       if (nombre.endsWith('.zip')) {
-        if (!window.shp) throw new Error('Librería shpjs no cargada');
-        const result = await window.shp(await file.arrayBuffer());
+        if (!window.shp) throw libNoCargada('procesar shapefile');
+        let result;
+        try {
+          result = await window.shp(await file.arrayBuffer());
+        } catch (e) {
+          throw new ErrorAmigable(
+            'No pude leer el shapefile dentro del .zip.',
+            'Un shapefile son varios archivos (.shp, .dbf, .shx, .prj) que deben venir todos juntos dentro del .zip. Probablemente falta alguno o el .zip contiene otra cosa.',
+            'Verifica que tu .zip contenga al menos los archivos .shp, .dbf y .shx (idealmente también .prj con el sistema de referencia).'
+          );
+        }
         // shpjs devuelve un FC o array de FC si hay múltiples .shp
         if (Array.isArray(result)) {
           return {
@@ -393,7 +542,27 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         return { formato: 'Shapefile', geojson: result };
       }
 
-      throw new Error('Formato no soportado. Usa .geojson, .json, .kml, .kmz o .zip (shapefile)');
+      throw new ErrorAmigable(
+        'No reconozco ese tipo de archivo.',
+        `Recibí "${file.name}", pero por ahora solo entiendo formatos geoespaciales estándar: GeoJSON (.geojson o .json), KML/KMZ (los que exporta Google Earth) y shapefile comprimido en .zip (el típico de QGIS o ArcGIS).`,
+        'Si tienes datos en Excel, CSV o PDF, primero hay que convertirlos a uno de estos formatos. Mira la sección "¿No sabes qué archivo subir?" arriba para más detalles.'
+      );
+    }
+
+    // Error con contexto: title + body + hint para mostrar al usuario
+    class ErrorAmigable extends Error {
+      constructor(title, body, hint) {
+        super(title);
+        this.amigable = true;
+        this.title = title; this.body = body; this.hint = hint;
+      }
+    }
+    function libNoCargada(qué) {
+      return new ErrorAmigable(
+        `No pude cargar las librerías para ${qué}.`,
+        'El visor necesita descargar 3 pequeñas librerías desde internet (Leaflet, JSZip, togeojson o shpjs). Una de ellas no llegó a cargar — probablemente un problema temporal de red o un bloqueador de scripts.',
+        'Refresca la página con Ctrl+F5. Si persiste, revisa si tienes un bloqueador de anuncios o scripts (uBlock, NoScript, Brave Shields) activo y desactívalo solo para este sitio.'
+      );
     }
 
     function normalizarGeoJSON(data) {
@@ -402,7 +571,11 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       if (data?.type && data?.coordinates) {
         return { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: data, properties: {} }] };
       }
-      throw new Error('El JSON no es un GeoJSON válido (esperado FeatureCollection, Feature o Geometry)');
+      throw new ErrorAmigable(
+        'El archivo es un JSON pero no un GeoJSON.',
+        'GeoJSON es un tipo específico de JSON que debe tener una propiedad "type" con valor "FeatureCollection", "Feature" o el nombre de una geometría (Point, Polygon, etc.). El archivo que subiste es JSON válido pero no sigue esta estructura.',
+        'Si lo exportaste desde un sistema, busca la opción "exportar como GeoJSON" en lugar de "JSON genérico". Para ver un ejemplo de cómo debería verse, visita geojson.org.'
+      );
     }
 
     // ─── Render ───
@@ -468,12 +641,6 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       return { total: feats.length, geomsStr };
     }
 
-    function escapar(s) {
-      return String(s).replace(/[&<>"']/g, m =>
-        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])
-      );
-    }
-
     function renderTabla(geojson) {
       const cont = $('tabla-wrap');
       const feats = (geojson.features || []).slice(0, 50);
@@ -505,7 +672,14 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       try {
         const { formato, geojson } = await parsearArchivo(file);
         if (!geojson.features || geojson.features.length === 0) {
-          setStatus(`El archivo no contiene features visualizables.`, 'error');
+          setStatus({
+            title: 'No encontré nada para dibujar en el mapa.',
+            body:
+              'Tu archivo se leyó correctamente, pero no contiene "features" — el nombre técnico para los elementos que un mapa puede mostrar: puntos, líneas o áreas. Lo más probable es que el archivo solo tenga estilos, metadatos o carpetas vacías, sin geometrías reales adentro.',
+            hint:
+              'Ábrelo en Google Earth o QGIS y verifica que veas algo dibujado (un alfiler, una línea o un polígono). Si lo ves vacío allá también, hay que crear las geometrías antes de exportar.',
+            type: 'error',
+          });
           return;
         }
         geojsonActual = geojson;
@@ -529,10 +703,25 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
           $('r-bounds').textContent = '—';
         }
         renderTabla(geojson);
-        setStatus(`✓ ${total} feature${total === 1 ? '' : 's'} cargado${total === 1 ? '' : 's'}.`, 'success');
+        setStatus({
+          title: `✓ ${total} elemento${total === 1 ? '' : 's'} cargado${total === 1 ? '' : 's'} correctamente.`,
+          body: `Mira el mapa de abajo para visualizar tu archivo. Puedes hacer clic sobre cada elemento para ver sus propiedades.`,
+          type: 'success',
+        });
       } catch (e) {
-        setStatus('Error: ' + e.message, 'error');
         console.error(e);
+        if (e?.amigable) {
+          setStatus({ title: e.title, body: e.body, hint: e.hint, type: 'error' });
+        } else {
+          setStatus({
+            title: 'Algo salió mal al procesar el archivo.',
+            body:
+              'El archivo no se pudo leer correctamente. Esto puede pasar si el archivo está corrupto, mal formado, o si tiene un formato que el visor aún no soporta del todo. Detalle técnico: ' + (e?.message || e),
+            hint:
+              'Si el archivo se ve bien en QGIS o Google Earth pero acá no funciona, ayúdanos a mejorar el visor: abre un issue en GitHub con una descripción y, si es posible, el archivo adjunto.',
+            type: 'error',
+          });
+        }
       }
     }
 
@@ -565,10 +754,18 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       if (!geojsonActual) return;
       try {
         await navigator.clipboard.writeText(JSON.stringify(geojsonActual, null, 2));
-        setStatus('✓ GeoJSON copiado al portapapeles.', 'success');
+        setStatus({
+          title: '✓ GeoJSON copiado al portapapeles.',
+          type: 'success',
+        });
         setTimeout(() => setStatus(''), 2500);
       } catch {
-        setStatus('No se pudo copiar — tu navegador bloqueó el acceso al portapapeles.', 'error');
+        setStatus({
+          title: 'No pude copiar al portapapeles.',
+          body: 'Tu navegador bloqueó el acceso al portapapeles. Esto suele pasar en pestañas en modo privado o cuando el sitio no se ve como "seguro".',
+          hint: 'Usa el botón "⬇ Descargar como GeoJSON" como alternativa — funciona en cualquier navegador.',
+          type: 'error',
+        });
       }
     });
 
