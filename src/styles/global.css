@@ -678,6 +678,17 @@ header {
   color: var(--verde); margin-top: 0.4rem;
   letter-spacing: 1px; text-transform: uppercase;
 }
+.herr-cta-wip {
+  color: var(--t3);
+  text-transform: none;
+  letter-spacing: 0.3px;
+  font-size: 10.5px;
+  padding: 0.4rem 0.6rem;
+  background: var(--surface2);
+  border: 1px dashed var(--border2);
+  border-radius: 6px;
+  text-align: center;
+}
 
 /* ── FOOTER ── */
 footer {

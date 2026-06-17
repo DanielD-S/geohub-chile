@@ -94,7 +94,11 @@ const herramientas = [
                 {h.soporta.map((s) => <span class="herr-tag">{s}</span>)}
               </div>
             </div>
-            {h.estado === 'activo' && <div class="herr-cta">Abrir →</div>}
+            {h.estado === 'activo' ? (
+              <div class="herr-cta">Abrir →</div>
+            ) : (
+              <div class="herr-cta herr-cta-wip">🚧 En desarrollo · pronto disponible</div>
+            )}
           </Tag>
         );
       })}
