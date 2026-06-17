@@ -1,6 +1,7 @@
 ---
 nombre: "Catastro Ambiental Chile"
 valoracionIssue: 1
+score: 0
 categoria: ambiental
 icono: "🌿"
 estado: activo

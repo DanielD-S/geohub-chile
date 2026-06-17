@@ -1,6 +1,7 @@
 ---
 nombre: "Recursos Hídricos Chile"
 valoracionIssue: 6
+score: 0
 categoria: hidrico
 icono: "💧"
 estado: beta

@@ -1,6 +1,7 @@
 ---
 nombre: "SII Predios — Catastro predial por comuna"
 valoracionIssue: 7
+score: 0
 tipo: comunidad
 categoria: admin
 icono: "🏠"

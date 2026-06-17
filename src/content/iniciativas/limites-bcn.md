@@ -1,6 +1,7 @@
 ---
 nombre: "Límites Administrativos BCN"
 valoracionIssue: 4
+score: 0
 tipo: oficial
 categoria: admin
 icono: "🗺️"

@@ -1,6 +1,7 @@
 ---
 nombre: "Monitor de Riesgos Meteorológicos Chile"
 valoracionIssue: 5
+score: 0
 categoria: riesgo
 icono: "🔥❄️"
 iconoBg: "linear-gradient(135deg,rgba(230,57,70,0.15),rgba(255,107,53,0.1))"
