@@ -75,6 +75,18 @@ header {
   color: var(--t1);
 }
 .logo-text span { color: var(--verde); }
+.logo-beta {
+  font-family: var(--mono);
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--cat-energia);
+  background: rgba(244,130,10,0.12);
+  border: 1px solid rgba(244,130,10,0.4);
+  padding: 2px 6px; border-radius: 10px;
+  margin-left: 0.4rem;
+  line-height: 1;
+  cursor: help;
+}
 
 .header-nav {
   display: flex; gap: 0; overflow-x: auto;
