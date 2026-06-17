@@ -1,0 +1,535 @@
+---
+import Base from '../../layouts/Base.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+
+<Base
+  title="Visor GeoJSON / KML / SHP · Herramientas · GeoHub Chile"
+  description="Visualiza al instante archivos .geojson, .kml, .kmz y shapefile en tu navegador. 100% client-side, sin servidor."
+>
+  <Header />
+
+  <!-- Leaflet -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
+    integrity="sha512-h9FcoyWjHcOcmEVkxOfTLnmZFWIH0iZhZT1H2TbOq55xssQGEJHEaIm+PgoUaZbRvQTNTluNOEfb1ZRy6D3BOw=="
+    crossorigin=""
+  />
+  <script
+    is:inline
+    src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"
+    integrity="sha512-BB3hKbKWOc9Ez/TAwyWxNXeoV9c1v6FIeYiBieIWkpLjauysF18NzgR1MBNBXf8/KABdlkX68nAhlwcDFLGPCQ=="
+    crossorigin=""
+  ></script>
+  <script
+    is:inline
+    src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"
+  ></script>
+  <script
+    is:inline
+    src="https://cdnjs.cloudflare.com/ajax/libs/togeojson/0.16.0/togeojson.min.js"
+  ></script>
+  <script
+    is:inline
+    src="https://unpkg.com/shpjs@4.0.4/dist/shp.min.js"
+  ></script>
+
+  <div class="herr-page">
+    <div class="herr-back">
+      <a href={`${base}/herramientas/`}>← Herramientas</a>
+    </div>
+
+    <div class="herr-hdr">
+      <h1>🗺️ Visor de archivos geográficos</h1>
+      <p>
+        Carga un archivo <code>.geojson</code>, <code>.kml</code>,
+        <code>.kmz</code> o un shapefile comprimido (<code>.zip</code>) y
+        visualízalo al instante. Útil para inspeccionar capas sin abrir QGIS.
+        <strong>Todo ocurre en tu navegador</strong> — los archivos no se
+        suben a ningún servidor.
+      </p>
+    </div>
+
+    <!-- Drop zone -->
+    <label class="dropzone" id="dropzone">
+      <input type="file" id="file-input" accept=".geojson,.json,.kml,.kmz,.zip" />
+      <div class="dz-main">
+        <div class="dz-icon">📂</div>
+        <div class="dz-text">
+          Arrastra un archivo aquí o <strong>haz clic para elegir</strong>
+        </div>
+        <div class="dz-formats">
+          Formatos: .geojson · .json · .kml · .kmz · .zip (shapefile)
+        </div>
+      </div>
+    </label>
+
+    <div id="status" class="status"></div>
+
+    <!-- Resultado: panel de info + mapa + tabla de propiedades -->
+    <div id="resultado" class="resultado" style="display:none">
+      <div class="resumen">
+        <div class="resumen-grid">
+          <div><span class="r-lbl">Archivo</span><span class="r-val" id="r-archivo">—</span></div>
+          <div><span class="r-lbl">Formato detectado</span><span class="r-val" id="r-formato">—</span></div>
+          <div><span class="r-lbl">Features</span><span class="r-val" id="r-features">—</span></div>
+          <div><span class="r-lbl">Geometrías</span><span class="r-val" id="r-geoms">—</span></div>
+          <div class="r-bounds"><span class="r-lbl">Bounds (WGS84)</span><span class="r-val" id="r-bounds">—</span></div>
+        </div>
+        <div class="resumen-actions">
+          <button id="btn-descargar" class="btn-tool">⬇ Descargar como GeoJSON</button>
+          <button id="btn-copiar" class="btn-tool">📋 Copiar GeoJSON</button>
+          <button id="btn-limpiar" class="btn-tool btn-tool-ghost">✕ Limpiar</button>
+        </div>
+      </div>
+
+      <div id="mapa-canvas" class="mapa-tool"></div>
+
+      <details class="props-wrap" open>
+        <summary>📋 Tabla de propiedades (primeros 50 features)</summary>
+        <div id="tabla-wrap" class="tabla-wrap"></div>
+      </details>
+    </div>
+  </div>
+
+  <Footer />
+</Base>
+
+<style>
+  .herr-page {
+    max-width: 1280px; margin: 0 auto;
+    padding: 1.5rem 1.5rem 4rem;
+  }
+  .herr-back a {
+    font-family: var(--mono); font-size: 11px;
+    text-transform: uppercase; letter-spacing: 1px;
+    color: var(--t3); text-decoration: none;
+    transition: color 0.15s;
+  }
+  .herr-back a:hover { color: var(--verde); }
+  .herr-hdr {
+    margin: 1.5rem 0 1.25rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .herr-hdr h1 {
+    font-size: 1.6rem; font-weight: 700;
+    color: var(--t1); margin-bottom: 0.5rem;
+    letter-spacing: -0.015em;
+  }
+  .herr-hdr p {
+    color: var(--t2); font-size: 13.5px;
+    line-height: 1.7; max-width: 78ch;
+  }
+  .herr-hdr code {
+    background: var(--surface2); border: 1px solid var(--border);
+    padding: 1px 5px; border-radius: 4px;
+    font-family: var(--mono); font-size: 11.5px;
+    color: var(--verde);
+  }
+  .herr-hdr strong { color: var(--t1); }
+
+  /* Drop zone */
+  .dropzone {
+    display: block; cursor: pointer;
+    background: var(--surface);
+    border: 2px dashed var(--border2);
+    border-radius: var(--r);
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    transition: all 0.18s ease;
+    margin-bottom: 1rem;
+  }
+  .dropzone:hover, .dropzone.drag {
+    border-color: var(--verde);
+    background: var(--verde-glow);
+  }
+  .dropzone input { display: none; }
+  .dz-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+  .dz-text { font-size: 14px; color: var(--t1); }
+  .dz-text strong { color: var(--verde); }
+  .dz-formats { font-size: 11.5px; color: var(--t3); margin-top: 0.5rem; font-family: var(--mono); }
+
+  /* Status */
+  .status:empty { display: none; }
+  .status {
+    padding: 0.6rem 0.85rem;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--r); margin-bottom: 1rem;
+    font-size: 12.5px; color: var(--t2);
+  }
+  .status.error {
+    background: rgba(230,57,70,0.1); border-color: rgba(230,57,70,0.3);
+    color: #ff6b75;
+  }
+  .status.success {
+    background: rgba(61,214,140,0.08); border-color: var(--verde-dim);
+    color: var(--verde);
+  }
+
+  /* Resumen */
+  .resultado { display: flex; flex-direction: column; gap: 1rem; }
+  .resumen {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r); padding: 1rem 1.25rem;
+  }
+  .resumen-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.85rem 1.25rem;
+    padding-bottom: 0.85rem;
+    margin-bottom: 0.85rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .resumen-grid > div { display: flex; flex-direction: column; gap: 0.15rem; }
+  .r-bounds { grid-column: 1 / -1; }
+  .r-lbl {
+    font-family: var(--mono); font-size: 10px;
+    text-transform: uppercase; letter-spacing: 1px;
+    color: var(--t3);
+  }
+  .r-val {
+    font-family: var(--mono); font-size: 13px;
+    color: var(--t1); word-break: break-all;
+  }
+  .resumen-actions {
+    display: flex; gap: 0.5rem; flex-wrap: wrap;
+  }
+  .btn-tool {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--t1);
+    padding: 0.45rem 0.9rem;
+    border-radius: 6px;
+    font-family: var(--sans);
+    font-size: 12.5px; font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-tool:hover {
+    border-color: var(--verde-dim);
+    color: var(--verde);
+    background: var(--verde-glow);
+  }
+  .btn-tool-ghost { color: var(--t3); }
+  .btn-tool-ghost:hover {
+    color: #e63946; border-color: rgba(230,57,70,0.4);
+    background: rgba(230,57,70,0.08);
+  }
+
+  /* Mapa */
+  .mapa-tool {
+    height: 520px;
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    background: var(--surface);
+    overflow: hidden;
+  }
+
+  /* Tabla */
+  .props-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+  }
+  .props-wrap summary {
+    padding: 0.7rem 1rem;
+    cursor: pointer;
+    font-family: var(--mono); font-size: 12px;
+    color: var(--t2);
+    user-select: none;
+  }
+  .props-wrap[open] summary {
+    border-bottom: 1px solid var(--border);
+  }
+  .tabla-wrap {
+    max-height: 360px;
+    overflow: auto;
+  }
+  .tabla-wrap table {
+    width: 100%; border-collapse: collapse;
+    font-size: 11.5px; font-family: var(--mono);
+  }
+  .tabla-wrap th, .tabla-wrap td {
+    padding: 6px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    color: var(--t2);
+  }
+  .tabla-wrap th {
+    position: sticky; top: 0;
+    background: var(--surface2);
+    color: var(--t1);
+    font-weight: 600; font-size: 10.5px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    z-index: 1;
+  }
+  .tabla-wrap tr:hover td { background: var(--surface2); }
+  .tabla-vacia {
+    padding: 1.5rem;
+    text-align: center;
+    color: var(--t3);
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+</style>
+
+<script is:inline>
+  (() => {
+    const $ = (id) => document.getElementById(id);
+    const dropzone = $('dropzone');
+    const fileInput = $('file-input');
+    const status = $('status');
+    const resultado = $('resultado');
+
+    let map = null;
+    let layer = null;
+    let geojsonActual = null;
+    let nombreActual = '';
+
+    function setStatus(msg, clase = '') {
+      status.textContent = msg || '';
+      status.className = 'status' + (clase ? ' ' + clase : '');
+    }
+
+    // ─── Parsers ───
+    async function parsearArchivo(file) {
+      const nombre = file.name.toLowerCase();
+
+      if (nombre.endsWith('.geojson') || nombre.endsWith('.json')) {
+        const txt = await file.text();
+        const data = JSON.parse(txt);
+        const fc = normalizarGeoJSON(data);
+        return { formato: 'GeoJSON', geojson: fc };
+      }
+
+      if (nombre.endsWith('.kml')) {
+        if (!window.toGeoJSON) throw new Error('Librería toGeoJSON no cargada');
+        const txt = await file.text();
+        const xml = new DOMParser().parseFromString(txt, 'text/xml');
+        return { formato: 'KML', geojson: window.toGeoJSON.kml(xml) };
+      }
+
+      if (nombre.endsWith('.kmz')) {
+        if (!window.JSZip || !window.toGeoJSON) throw new Error('Librerías no cargadas');
+        const zip = await window.JSZip.loadAsync(await file.arrayBuffer());
+        const kmlEntry = Object.values(zip.files)
+          .find(f => !f.dir && f.name.toLowerCase().endsWith('.kml'));
+        if (!kmlEntry) throw new Error('El KMZ no contiene ningún archivo .kml');
+        const txt = await kmlEntry.async('string');
+        const xml = new DOMParser().parseFromString(txt, 'text/xml');
+        return { formato: 'KMZ', geojson: window.toGeoJSON.kml(xml) };
+      }
+
+      if (nombre.endsWith('.zip')) {
+        if (!window.shp) throw new Error('Librería shpjs no cargada');
+        const result = await window.shp(await file.arrayBuffer());
+        // shpjs devuelve un FC o array de FC si hay múltiples .shp
+        if (Array.isArray(result)) {
+          return {
+            formato: `Shapefile (${result.length} capas)`,
+            geojson: {
+              type: 'FeatureCollection',
+              features: result.flatMap(fc => fc.features),
+            },
+          };
+        }
+        return { formato: 'Shapefile', geojson: result };
+      }
+
+      throw new Error('Formato no soportado. Usa .geojson, .json, .kml, .kmz o .zip (shapefile)');
+    }
+
+    function normalizarGeoJSON(data) {
+      if (data?.type === 'FeatureCollection') return data;
+      if (data?.type === 'Feature') return { type: 'FeatureCollection', features: [data] };
+      if (data?.type && data?.coordinates) {
+        return { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: data, properties: {} }] };
+      }
+      throw new Error('El JSON no es un GeoJSON válido (esperado FeatureCollection, Feature o Geometry)');
+    }
+
+    // ─── Render ───
+    function inicializarMapaSiHaceFalta() {
+      if (map) return;
+      map = L.map('mapa-canvas', {
+        center: [-37, -71], zoom: 4,
+        zoomControl: false, worldCopyJump: true,
+      });
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap · © CARTO',
+        subdomains: 'abcd', maxZoom: 18, noWrap: true,
+      }).addTo(map);
+      L.control.zoom({ position: 'topright' }).addTo(map);
+    }
+
+    function renderMapa(geojson) {
+      inicializarMapaSiHaceFalta();
+      if (layer) {
+        layer.remove();
+        layer = null;
+      }
+      layer = L.geoJSON(geojson, {
+        style: () => ({
+          color: '#2cd4e0',
+          weight: 2,
+          fillColor: '#2cd4e0',
+          fillOpacity: 0.15,
+        }),
+        pointToLayer: (_f, latlng) =>
+          L.circleMarker(latlng, {
+            radius: 6, color: '#2cd4e0', weight: 2,
+            fillColor: '#2cd4e0', fillOpacity: 0.6,
+          }),
+        onEachFeature: (feat, lyr) => {
+          const props = feat.properties || {};
+          const filas = Object.entries(props)
+            .slice(0, 12)
+            .map(([k, v]) => `<tr><td style="color:#8fa3bf;padding-right:8px">${escapar(k)}</td><td style="color:#e8f0fe">${escapar(String(v ?? ''))}</td></tr>`)
+            .join('');
+          lyr.bindPopup(`<div style="font-family:'Courier New',monospace;font-size:11px;max-width:260px"><table>${filas || '<tr><td>(sin propiedades)</td></tr>'}</table></div>`);
+        },
+      }).addTo(map);
+
+      const bounds = layer.getBounds();
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, { padding: [20, 20], maxZoom: 14 });
+        return bounds;
+      }
+      return null;
+    }
+
+    function calcularResumen(geojson) {
+      const feats = geojson.features || [];
+      const tipos = {};
+      feats.forEach(f => {
+        const t = f.geometry?.type || 'sin-geometria';
+        tipos[t] = (tipos[t] || 0) + 1;
+      });
+      const geomsStr = Object.entries(tipos)
+        .map(([k, v]) => `${k}(${v})`)
+        .join(' · ') || '—';
+      return { total: feats.length, geomsStr };
+    }
+
+    function escapar(s) {
+      return String(s).replace(/[&<>"']/g, m =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])
+      );
+    }
+
+    function renderTabla(geojson) {
+      const cont = $('tabla-wrap');
+      const feats = (geojson.features || []).slice(0, 50);
+      if (feats.length === 0) {
+        cont.innerHTML = '<div class="tabla-vacia">Sin features con propiedades.</div>';
+        return;
+      }
+      const cols = Array.from(new Set(feats.flatMap(f => Object.keys(f.properties || {})))).slice(0, 12);
+      if (cols.length === 0) {
+        cont.innerHTML = '<div class="tabla-vacia">Los features no tienen propiedades.</div>';
+        return;
+      }
+      const head = '<tr><th>#</th>' + cols.map(c => `<th>${escapar(c)}</th>`).join('') + '<th>geometría</th></tr>';
+      const rows = feats.map((f, i) => {
+        const tds = cols.map(c => `<td>${escapar(String(f.properties?.[c] ?? ''))}</td>`).join('');
+        return `<tr><td style="color:#4a6580">${i + 1}</td>${tds}<td style="color:#4a6580">${escapar(f.geometry?.type || '—')}</td></tr>`;
+      }).join('');
+      const totalFeats = geojson.features?.length || 0;
+      const footer = totalFeats > 50
+        ? `<div class="tabla-vacia">Mostrando 50 de ${totalFeats} features.</div>`
+        : '';
+      cont.innerHTML = `<table>${head}${rows}</table>${footer}`;
+    }
+
+    async function manejarArchivo(file) {
+      if (!file) return;
+      setStatus(`Procesando ${file.name}…`);
+      resultado.style.display = 'none';
+      try {
+        const { formato, geojson } = await parsearArchivo(file);
+        if (!geojson.features || geojson.features.length === 0) {
+          setStatus(`El archivo no contiene features visualizables.`, 'error');
+          return;
+        }
+        geojsonActual = geojson;
+        nombreActual = file.name.replace(/\.[^.]+$/, '');
+        const { total, geomsStr } = calcularResumen(geojson);
+
+        $('r-archivo').textContent = file.name;
+        $('r-formato').textContent = formato;
+        $('r-features').textContent = total;
+        $('r-geoms').textContent = geomsStr;
+
+        resultado.style.display = 'flex';
+        // Forzar layout antes de inicializar mapa
+        await new Promise(r => requestAnimationFrame(r));
+        const bounds = renderMapa(geojson);
+        if (bounds) {
+          const sw = bounds.getSouthWest(), ne = bounds.getNorthEast();
+          $('r-bounds').textContent =
+            `${sw.lng.toFixed(4)}, ${sw.lat.toFixed(4)} → ${ne.lng.toFixed(4)}, ${ne.lat.toFixed(4)}`;
+        } else {
+          $('r-bounds').textContent = '—';
+        }
+        renderTabla(geojson);
+        setStatus(`✓ ${total} feature${total === 1 ? '' : 's'} cargado${total === 1 ? '' : 's'}.`, 'success');
+      } catch (e) {
+        setStatus('Error: ' + e.message, 'error');
+        console.error(e);
+      }
+    }
+
+    // ─── Eventos ───
+    fileInput.addEventListener('change', e => manejarArchivo(e.target.files?.[0]));
+
+    ['dragenter', 'dragover'].forEach(ev =>
+      dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('drag'); })
+    );
+    ['dragleave', 'drop'].forEach(ev =>
+      dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('drag'); })
+    );
+    dropzone.addEventListener('drop', e => {
+      const f = e.dataTransfer?.files?.[0];
+      if (f) manejarArchivo(f);
+    });
+
+    $('btn-descargar').addEventListener('click', () => {
+      if (!geojsonActual) return;
+      const blob = new Blob([JSON.stringify(geojsonActual, null, 2)], { type: 'application/geo+json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${nombreActual || 'archivo'}.geojson`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+
+    $('btn-copiar').addEventListener('click', async () => {
+      if (!geojsonActual) return;
+      try {
+        await navigator.clipboard.writeText(JSON.stringify(geojsonActual, null, 2));
+        setStatus('✓ GeoJSON copiado al portapapeles.', 'success');
+        setTimeout(() => setStatus(''), 2500);
+      } catch {
+        setStatus('No se pudo copiar — tu navegador bloqueó el acceso al portapapeles.', 'error');
+      }
+    });
+
+    $('btn-limpiar').addEventListener('click', () => {
+      if (layer) { layer.remove(); layer = null; }
+      geojsonActual = null;
+      nombreActual = '';
+      fileInput.value = '';
+      resultado.style.display = 'none';
+      setStatus('');
+    });
+  })();
+</script>
+</Base>

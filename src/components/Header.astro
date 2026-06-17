@@ -2,44 +2,61 @@
 interface Props {
   repoUrl?: string;
 }
-const { repoUrl = 'https://github.com/DanielD-S/Capas_IDE_CHILE' } = Astro.props;
+const { repoUrl = 'https://github.com/DanielD-S/geohub-chile' } = Astro.props;
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const path = Astro.url.pathname.replace(/\/$/, '');
+const enHerramientas = path.includes('/herramientas');
+
+// En la home las anclas funcionan como #seccion; desde otras páginas hay que
+// volver a la home con la ancla absoluta.
+const homeHref = (anchor: string) =>
+  enHerramientas ? `${base}/${anchor}` : `#${anchor.replace(/^#/, '')}`;
 ---
 
 <header>
   <div class="header-inner">
-    <a href="#" class="logo">
+    <a href={`${base}/`} class="logo">
       <div class="logo-mark">G</div>
       <div class="logo-text">Geo<span>Hub</span>CL</div>
     </a>
     <nav class="header-nav">
-      <a class="hnav-link active" href="#iniciativas">Comunidad</a>
-      <a class="hnav-link" href="#oficiales">Oficiales</a>
-      <a class="hnav-link" href="#fuentes">Fuentes</a>
-      <a class="hnav-link" href="#contribuir">Contribuir</a>
-      <a class="hnav-link" href="#apoyar">Apoyar</a>
-      <a class="hnav-link" href="#acerca">Acerca</a>
+      <a class={`hnav-link${!enHerramientas ? ' active' : ''}`} href={homeHref('#iniciativas')}>Comunidad</a>
+      <a class="hnav-link" href={homeHref('#oficiales')}>Oficiales</a>
+      <a class={`hnav-link${enHerramientas ? ' active' : ''}`} href={`${base}/herramientas/`}>Herramientas</a>
+      <a class="hnav-link" href={homeHref('#fuentes')}>Fuentes</a>
+      <a class="hnav-link" href={homeHref('#contribuir')}>Contribuir</a>
+      <a class="hnav-link" href={homeHref('#apoyar')}>Apoyar</a>
+      <a class="hnav-link" href={homeHref('#acerca')}>Acerca</a>
     </nav>
     <div class="header-right">
       <a class="btn-gh" href={repoUrl} target="_blank" rel="noopener">⬡ GitHub</a>
-      <button class="btn-contribuir" data-modal-open>+ Añadir proyecto</button>
+      {!enHerramientas && (
+        <button class="btn-contribuir" data-modal-open>+ Añadir proyecto</button>
+      )}
     </div>
   </div>
 </header>
 
 <script is:inline>
-  // Scroll-spy para nav activo
+  // Scroll-spy solo aplica en la home (no en /herramientas/...)
   (() => {
+    if (location.pathname.includes('/herramientas')) return;
     const secciones = ['iniciativas', 'oficiales', 'fuentes', 'contribuir', 'apoyar', 'acerca'];
     const navLinks = document.querySelectorAll('.hnav-link');
     window.addEventListener(
       'scroll',
       () => {
         const y = window.scrollY + 120;
-        secciones.forEach((id, i) => {
+        secciones.forEach((id) => {
           const el = document.getElementById(id);
           if (el && el.offsetTop <= y) {
-            navLinks.forEach((l) => l.classList.remove('active'));
-            if (navLinks[i]) navLinks[i].classList.add('active');
+            navLinks.forEach((l) => {
+              if (l.getAttribute('href')?.endsWith('#' + id)) {
+                navLinks.forEach((x) => x.classList.remove('active'));
+                l.classList.add('active');
+              }
+            });
           }
         });
       },

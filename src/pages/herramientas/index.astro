@@ -1,0 +1,105 @@
+---
+import Base from '../../layouts/Base.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+const herramientas = [
+  {
+    slug: 'visor-geojson',
+    titulo: 'Visor de archivos geográficos',
+    desc:
+      'Visualiza al instante un archivo .geojson, .kml, .kmz o shapefile (.zip). Soporta drag & drop, muestra propiedades y exporta a GeoJSON normalizado. Todo en tu navegador, nada se sube a un servidor.',
+    icono: '🗺️',
+    estado: 'activo',
+    estadoTexto: 'Disponible',
+    soporta: ['.geojson', '.kml', '.kmz', '.zip (SHP)'],
+  },
+  {
+    slug: 'comuna-por-coordenada',
+    titulo: '¿En qué comuna estoy?',
+    desc:
+      'Pega una coordenada o sube un CSV con lat/lng — devuelve comuna y región para cada punto. Cruza contra los límites oficiales de BCN.',
+    icono: '📍',
+    estado: 'wip',
+    estadoTexto: 'Próximamente',
+    soporta: ['lat,lng', 'CSV'],
+  },
+  {
+    slug: 'conversor-coordenadas',
+    titulo: 'Conversor de coordenadas chilenas',
+    desc:
+      'Convierte entre WGS84, SIRGAS 2000, UTM 18S/19S y PSAD56 — los sistemas usados por organismos chilenos.',
+    icono: '🧭',
+    estado: 'wip',
+    estadoTexto: 'Próximamente',
+    soporta: ['Coord. única', 'CSV batch'],
+  },
+  {
+    slug: 'cross-catastros',
+    titulo: '¿Qué hay en este punto?',
+    desc:
+      'Pega una coordenada o sube un polígono — cruza automáticamente con catastro minero, áreas protegidas, cuencas y bosque nativo. El diferenciador del hub.',
+    icono: '🔍',
+    estado: 'wip',
+    estadoTexto: 'Próximamente',
+    soporta: ['lat,lng', 'KMZ', 'GeoJSON'],
+  },
+];
+---
+
+<Base
+  title="Herramientas · GeoHub Chile"
+  description="Utilidades client-side para trabajar con datos geoespaciales chilenos: visor de archivos, identificador de comuna, conversor de coordenadas y más."
+>
+  <Header />
+
+  <section class="hero hero-compact">
+    <div class="hero-inner">
+      <div class="hero-eyebrow"><span>⬡</span> Herramientas · Client-side · $0</div>
+      <h1>Utilidades que <em>resuelven problemas reales</em></h1>
+      <p class="hero-desc">
+        Herramientas para trabajar con datos geoespaciales chilenos sin pagar
+        software ni subir nada a un servidor. Todo corre en tu navegador.
+      </p>
+    </div>
+  </section>
+
+  <div class="contenido">
+    <div class="sec-title">
+      Herramientas disponibles
+      <span class="sec-sub">{herramientas.filter((h) => h.estado === 'activo').length} activas · {herramientas.filter((h) => h.estado === 'wip').length} en desarrollo</span>
+    </div>
+
+    <div class="herramientas-grid">
+      {herramientas.map((h) => {
+        const href = h.estado === 'activo' ? `${base}/herramientas/${h.slug}` : '#';
+        const Tag = h.estado === 'activo' ? 'a' : 'div';
+        return (
+          <Tag
+            href={h.estado === 'activo' ? href : undefined}
+            class={`herr-card herr-${h.estado}`}
+          >
+            <div class="herr-icono">{h.icono}</div>
+            <div class="herr-body">
+              <div class="herr-meta">
+                <span class={`herr-estado herr-estado-${h.estado}`}>
+                  {h.estadoTexto}
+                </span>
+              </div>
+              <div class="herr-titulo">{h.titulo}</div>
+              <p class="herr-desc">{h.desc}</p>
+              <div class="herr-soporta">
+                {h.soporta.map((s) => <span class="herr-tag">{s}</span>)}
+              </div>
+            </div>
+            {h.estado === 'activo' && <div class="herr-cta">Abrir →</div>}
+          </Tag>
+        );
+      })}
+    </div>
+  </div>
+
+  <Footer />
+</Base>
