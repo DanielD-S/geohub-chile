@@ -1,0 +1,956 @@
+---
+import Base from '../../layouts/Base.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+
+<Base
+  title="Kit Webmap descargable · Herramientas · GeoHub Chile"
+  description="Sube tus capas, configura simbología y leyenda, y descarga un mapa listo para publicar. Multi-capa, simbología por categoría, selector de basemaps. 100% client-side."
+>
+  <Header />
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <script is:inline src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script is:inline src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script is:inline src="https://cdnjs.cloudflare.com/ajax/libs/togeojson/0.16.0/togeojson.min.js"></script>
+  <script is:inline src="https://unpkg.com/shpjs@4.0.4/dist/shp.min.js"></script>
+
+  <div class="herr-page">
+    <div class="herr-back">
+      <a href={`${base}/herramientas/`}>← Herramientas</a>
+    </div>
+
+    <div class="herr-hdr">
+      <h1>📦 Kit Webmap descargable</h1>
+      <p>
+        Sube <strong>una o varias capas</strong>, configura colores y
+        simbología (color único o por categoría), elige basemap y título, y
+        descarga un mapa listo para publicar: como <code>.html</code>
+        autocontenido o como <code>.zip</code> editable con
+        <code>README.md</code>. Incluye <strong>leyenda</strong>,
+        <strong>selector de capas</strong>, <strong>escala</strong> y
+        <strong>botón fullscreen</strong>. Todo ocurre en tu navegador — los
+        archivos no se suben a ningún servidor.
+      </p>
+    </div>
+
+    <!-- Step 1: cargar archivos -->
+    <label class="dropzone" id="dropzone">
+      <input type="file" id="file-input" accept=".geojson,.json,.kml,.kmz,.zip" multiple />
+      <div class="dz-main">
+        <div class="dz-icon">📂</div>
+        <div class="dz-text">
+          <strong>1.</strong> Arrastra una o varias capas, o <strong>haz clic para elegir</strong>
+        </div>
+        <div class="dz-formats">.geojson · .json · .kml · .kmz · .zip (shapefile)</div>
+      </div>
+    </label>
+
+    <div id="status" class="status"></div>
+
+    <!-- Resto del builder visible cuando hay al menos 1 capa -->
+    <div id="resultado" class="resultado" style="display:none">
+      <div class="config-card">
+        <div class="config-step"><strong>2.</strong> Configura el mapa</div>
+        <div class="config-grid">
+          <label class="field">
+            <span class="field-lbl">Título del mapa</span>
+            <input type="text" id="in-titulo" value="Mi mapa" maxlength="80" />
+          </label>
+          <label class="field">
+            <span class="field-lbl">Basemap inicial</span>
+            <select id="in-basemap">
+              <option value="carto-dark" selected>CARTO Dark (oscuro)</option>
+              <option value="carto-light">CARTO Positron (claro)</option>
+              <option value="osm">OpenStreetMap</option>
+              <option value="esri-sat">Esri Satélite</option>
+              <option value="opentopo">OpenTopoMap (topográfico)</option>
+            </select>
+            <span class="field-hint">El usuario podrá cambiar a cualquiera desde el selector del mapa.</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="config-card">
+        <div class="config-step"><strong>3.</strong> Capas (<span id="r-num-capas">0</span>)</div>
+        <div id="capas-list" class="capas-list"></div>
+        <p class="capa-hint">↑ Arrastra otro archivo al dropzone de arriba para agregar más capas.</p>
+      </div>
+
+      <div id="mapa-canvas" class="mapa-tool"></div>
+
+      <div class="config-card">
+        <div class="config-step"><strong>4.</strong> Descarga tu kit</div>
+        <div class="dl-grid">
+          <div class="dl-option">
+            <div class="dl-title">📄 .html autocontenido</div>
+            <div class="dl-desc">
+              Un solo archivo con todo embebido. Ábrelo con doble click o súbelo
+              a cualquier hosting. Ideal para compartir por correo.
+            </div>
+            <button id="btn-html" class="btn-dl">⬇ Descargar .html</button>
+          </div>
+          <div class="dl-option">
+            <div class="dl-title">📦 .zip editable</div>
+            <div class="dl-desc">
+              Carpeta con <code>index.html</code> · <code>config.json</code> ·
+              <code>data/capa-N.geojson</code> · <code>style.css</code> ·
+              <code>README.md</code> (con pasos para GitHub Pages, Netlify y
+              servidor local).
+            </div>
+            <button id="btn-zip" class="btn-dl">⬇ Descargar .zip</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <Footer />
+</Base>
+
+<style>
+  .herr-page { max-width: 1280px; margin: 0 auto; padding: 1.5rem 1.5rem 4rem; }
+  .herr-back a {
+    font-family: var(--mono); font-size: 11px;
+    text-transform: uppercase; letter-spacing: 1px;
+    color: var(--t3); text-decoration: none;
+    transition: color 0.15s;
+  }
+  .herr-back a:hover { color: var(--verde); }
+  .herr-hdr {
+    margin: 1.5rem 0 1.25rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .herr-hdr h1 {
+    font-size: 1.6rem; font-weight: 700;
+    color: var(--t1); margin-bottom: 0.5rem;
+    letter-spacing: -0.015em;
+  }
+  .herr-hdr p { color: var(--t2); font-size: 13.5px; line-height: 1.7; max-width: 84ch; }
+  .herr-hdr code {
+    background: var(--surface2); border: 1px solid var(--border);
+    padding: 1px 5px; border-radius: 4px;
+    font-family: var(--mono); font-size: 11.5px; color: var(--verde);
+  }
+  .herr-hdr strong { color: var(--t1); }
+
+  .dropzone {
+    display: block; cursor: pointer;
+    background: var(--surface);
+    border: 2px dashed var(--border2);
+    border-radius: var(--r);
+    padding: 1.5rem 1.5rem;
+    text-align: center;
+    transition: all 0.18s ease;
+    margin-bottom: 1rem;
+  }
+  .dropzone:hover, .dropzone.drag {
+    border-color: var(--verde);
+    background: var(--verde-glow);
+  }
+  .dropzone input { display: none; }
+  .dz-icon { font-size: 2rem; margin-bottom: 0.4rem; }
+  .dz-text { font-size: 14px; color: var(--t1); }
+  .dz-text strong { color: var(--verde); }
+  .dz-formats { font-size: 11.5px; color: var(--t3); margin-top: 0.4rem; font-family: var(--mono); }
+
+  .status:empty { display: none; }
+  .status {
+    padding: 0.85rem 1rem;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-left: 3px solid var(--border2);
+    border-radius: var(--r); margin-bottom: 1rem;
+  }
+  .status-title { font-size: 13.5px; font-weight: 600; color: var(--t1); line-height: 1.4; }
+  .status-body { margin-top: 0.4rem; font-size: 12.5px; color: var(--t2); line-height: 1.65; max-width: 80ch; }
+  .status-hint {
+    margin-top: 0.5rem; padding-top: 0.5rem;
+    border-top: 1px dashed var(--border);
+    font-size: 12px; color: var(--t3); line-height: 1.6;
+  }
+  .status.error { background: rgba(230,57,70,0.06); border-color: rgba(230,57,70,0.2); border-left-color: #e63946; }
+  .status.error .status-title { color: #ff8a92; }
+  .status.error .status-body { color: #d9b4b8; }
+  .status.error .status-hint { color: #b59a9c; }
+  .status.success { background: rgba(61,214,140,0.05); border-color: var(--verde-dim); border-left-color: var(--verde); }
+  .status.success .status-title { color: var(--verde); }
+  .status.success .status-body { color: var(--t2); }
+
+  .resultado { display: flex; flex-direction: column; gap: 1rem; }
+  .config-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 1rem 1.25rem;
+  }
+  .config-step {
+    font-family: var(--mono); font-size: 11px;
+    text-transform: uppercase; letter-spacing: 1px;
+    color: var(--t3); margin-bottom: 0.85rem;
+  }
+  .config-step strong { color: var(--verde); margin-right: 4px; }
+  .config-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.85rem 1.25rem;
+  }
+  .field { display: flex; flex-direction: column; gap: 0.3rem; }
+  .field-lbl {
+    font-family: var(--mono); font-size: 10px;
+    text-transform: uppercase; letter-spacing: 1px;
+    color: var(--t3);
+  }
+  .field-hint { font-size: 11px; color: var(--t3); line-height: 1.5; }
+  .field input[type=text], .field select {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 5px;
+    padding: 0.4rem 0.6rem;
+    color: var(--t1);
+    font-family: var(--sans);
+    font-size: 13px;
+  }
+  .field input:focus, .field select:focus { outline: none; border-color: var(--verde); }
+
+  /* Capas list */
+  .capas-list { display: flex; flex-direction: column; gap: 0.75rem; }
+  .capa-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--capa-color, var(--verde));
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+  }
+  .capa-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 0.5rem; margin-bottom: 0.6rem;
+  }
+  .capa-head-info { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+  .capa-archivo {
+    font-family: var(--mono); font-size: 10.5px; color: var(--t3);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .capa-archivo strong { color: var(--t2); font-weight: 500; margin-right: 4px; }
+  .btn-eliminar {
+    background: transparent; border: 1px solid var(--border);
+    color: var(--t3); font-size: 12px;
+    padding: 4px 10px; border-radius: 5px;
+    cursor: pointer; transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .btn-eliminar:hover {
+    color: #e63946; border-color: rgba(230,57,70,0.4); background: rgba(230,57,70,0.08);
+  }
+  .capa-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 0.5fr 1fr 1fr;
+    gap: 0.5rem 0.75rem;
+    align-items: end;
+  }
+  @media (max-width: 720px) {
+    .capa-grid { grid-template-columns: 1fr 1fr; }
+  }
+  .capa-grid .field input[type=color] {
+    width: 100%; height: 32px; padding: 0;
+    background: transparent;
+    border: 1px solid var(--border2);
+    border-radius: 5px; cursor: pointer;
+  }
+  .capa-palette {
+    grid-column: 1 / -1;
+    display: flex; flex-wrap: wrap; gap: 4px;
+    margin-top: 0.4rem; padding-top: 0.5rem;
+    border-top: 1px dashed var(--border);
+  }
+  .capa-palette-lbl {
+    width: 100%;
+    font-family: var(--mono); font-size: 10px;
+    text-transform: uppercase; letter-spacing: 1px;
+    color: var(--t3); margin-bottom: 4px;
+  }
+  .pal-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 2px 6px 2px 4px;
+    border-radius: 3px;
+    font-family: var(--mono); font-size: 10.5px;
+    color: var(--t2);
+    max-width: 180px;
+  }
+  .pal-chip-sw { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  .pal-chip-lbl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .capa-hint { font-size: 11.5px; color: var(--t3); margin-top: 0.6rem; font-style: italic; }
+
+  .mapa-tool {
+    height: 520px;
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    background: var(--surface);
+    overflow: hidden;
+  }
+
+  .dl-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+  .dl-option {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.85rem 1rem;
+    display: flex; flex-direction: column; gap: 0.5rem;
+  }
+  .dl-title { font-size: 13.5px; font-weight: 600; color: var(--t1); }
+  .dl-desc { font-size: 12px; color: var(--t2); line-height: 1.6; flex: 1; }
+  .dl-desc code {
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 0 4px; border-radius: 3px;
+    font-family: var(--mono); font-size: 11px; color: var(--verde);
+  }
+  .btn-dl {
+    background: var(--verde); color: #06121a; border: none;
+    padding: 0.55rem 1rem; border-radius: 6px;
+    font-family: var(--sans); font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .btn-dl:hover { background: #5ce29c; }
+  .btn-dl:disabled { opacity: 0.5; cursor: not-allowed; }
+</style>
+
+<style is:global>
+  .leaflet-popup-content-wrapper {
+    background: #131920 !important; color: #e8f0fe !important;
+    border: 1px solid #2d4155 !important; border-radius: 6px !important;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.55) !important;
+  }
+  .leaflet-popup-tip { background: #131920 !important; border: 1px solid #2d4155 !important; box-shadow: none !important; }
+  .leaflet-popup-content {
+    margin: 10px 14px !important; color: #e8f0fe !important; line-height: 1.5 !important;
+    font-family: 'Courier New', monospace; font-size: 11.5px;
+  }
+  .leaflet-popup-content table { border-collapse: collapse; width: 100%; }
+  .leaflet-popup-content table td { padding: 3px 6px 3px 0; vertical-align: top; word-break: break-word; }
+  .leaflet-popup-content table td:first-child { color: #8fa3bf; font-weight: 500; white-space: nowrap; }
+  .leaflet-popup-content table td:last-child { color: #e8f0fe; }
+  .leaflet-popup-content a.popup-link {
+    color: #2cd4e0 !important; text-decoration: underline;
+    text-decoration-color: rgba(44,212,224,0.4); text-underline-offset: 2px; word-break: break-all;
+  }
+  .leaflet-popup-content a.popup-link:hover { color: #5ee0eb !important; text-decoration-color: #2cd4e0; }
+  .leaflet-container a.leaflet-popup-close-button {
+    color: #8fa3bf !important; font-size: 18px !important; padding: 6px 8px 0 0 !important;
+  }
+  .leaflet-container a.leaflet-popup-close-button:hover { color: #e8f0fe !important; background: transparent !important; }
+  .leaflet-control-zoom a, .leaflet-bar a {
+    background: #131920 !important; color: #e8f0fe !important; border: 1px solid #21303f !important;
+  }
+  .leaflet-control-zoom a:hover, .leaflet-bar a:hover {
+    background: #1a2230 !important; color: #3dd68c !important; border-color: #239960 !important;
+  }
+  .leaflet-control-attribution {
+    background: rgba(13,17,23,0.85) !important; color: #4a6580 !important; font-size: 10px !important;
+  }
+  .leaflet-control-attribution a { color: #8fa3bf !important; }
+  .leaflet-control-scale-line {
+    background: rgba(13,17,23,0.85) !important; color: #e8f0fe !important;
+    border: 1px solid #2d4155 !important; border-top: none !important;
+    font-family: ui-monospace, monospace; font-size: 10.5px;
+  }
+  .leaflet-control-layers {
+    background: #131920 !important; color: #e8f0fe !important;
+    border: 1px solid #2d4155 !important; border-radius: 6px !important;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.5) !important;
+  }
+  .leaflet-control-layers-toggle {
+    background-color: #131920 !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e8f0fe' stroke-width='1.8'%3E%3Cpolygon points='12 2 22 8.5 12 15 2 8.5 12 2'/%3E%3Cpolyline points='2 15.5 12 22 22 15.5'/%3E%3C/svg%3E") !important;
+    background-size: 22px 22px !important; background-position: center !important; background-repeat: no-repeat !important;
+  }
+  .leaflet-control-layers-expanded {
+    padding: 8px 10px !important; min-width: 160px;
+    font-family: ui-monospace, monospace; font-size: 12px;
+  }
+  .leaflet-control-layers-base label, .leaflet-control-layers-overlays label {
+    color: #e8f0fe !important; display: flex; align-items: center; gap: 6px; margin-bottom: 4px;
+  }
+  .leaflet-control-layers-separator { border-top: 1px solid #21303f !important; margin: 6px 0 !important; }
+
+  .leaflet-control-legend {
+    background: rgba(13,17,23,0.94) !important;
+    color: #e8f0fe !important;
+    border: 1px solid #2d4155 !important;
+    border-radius: 6px !important;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.5) !important;
+    padding: 8px 12px;
+    max-width: 240px;
+    font-family: ui-monospace, monospace; font-size: 11.5px;
+    line-height: 1.5;
+  }
+  .legend-title {
+    font-family: system-ui, sans-serif; font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 1px;
+    color: #8fa3bf; margin-bottom: 6px;
+    padding-bottom: 4px; border-bottom: 1px solid #21303f;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .legend-toggle {
+    background: none; border: none; cursor: pointer;
+    color: #4a6580; font-size: 14px; line-height: 1; padding: 0 0 0 8px;
+  }
+  .legend-toggle:hover { color: #e8f0fe; }
+  .leaflet-control-legend.legend-collapsed .legend-body { display: none; }
+  .leaflet-control-legend.legend-collapsed .legend-title { margin: 0; border: none; padding: 0; }
+  .legend-capa { margin-bottom: 8px; }
+  .legend-capa:last-child { margin-bottom: 0; }
+  .legend-capa-name { color: #e8f0fe; font-weight: 500; margin-bottom: 3px; }
+  .legend-entry { display: flex; align-items: center; gap: 6px; padding: 1px 0; color: #8fa3bf; }
+  .legend-swatch {
+    display: inline-block; width: 12px; height: 12px;
+    border-radius: 2px; border: 1px solid rgba(255,255,255,0.15); flex-shrink: 0;
+  }
+  .legend-swatch.point { border-radius: 50%; }
+
+  .kw-fs-btn {
+    width: 30px; height: 30px;
+    background: #131920; color: #e8f0fe;
+    border: 1px solid #21303f; border-radius: 4px;
+    cursor: pointer; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  }
+  .kw-fs-btn:hover { background: #1a2230; color: #3dd68c; border-color: #239960; }
+  .kw-fs-btn svg { width: 16px; height: 16px; }
+</style>
+
+<script is:inline define:vars={{ BASE_URL: base }}>
+  (() => {
+    const $ = (id) => document.getElementById(id);
+    const dropzone = $('dropzone');
+    const fileInput = $('file-input');
+    const status = $('status');
+    const resultado = $('resultado');
+    const inTitulo = $('in-titulo');
+    const inBasemap = $('in-basemap');
+    const capasList = $('capas-list');
+    const numCapasSpan = $('r-num-capas');
+    const btnHtml = $('btn-html');
+    const btnZip = $('btn-zip');
+
+    const BASEMAPS = {
+      'carto-dark':  { url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',  attr: '© OpenStreetMap · © CARTO' },
+      'carto-light': { url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', attr: '© OpenStreetMap · © CARTO' },
+      'osm':         { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',             attr: '© OpenStreetMap contributors' },
+      'esri-sat':    { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr: 'Esri, Maxar, Earthstar Geographics' },
+      'opentopo':    { url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',               attr: '© OpenStreetMap, SRTM · © OpenTopoMap (CC-BY-SA)' },
+    };
+
+    const PALETA = [
+      '#2cd4e0','#3dd68c','#f4820a','#e63946','#a78bfa','#fbbf24',
+      '#10b981','#ef4444','#8b5cf6','#ec4899','#14b8a6','#06b6d4'
+    ];
+    const MAX_CATEGORIAS = 12;
+
+    // ─── State ───
+    const state = {
+      titulo: 'Mi mapa',
+      basemap: 'carto-dark',
+      capas: [], // { id, nombre, nombreArchivo, formato, color, simbologia, geojson, campos }
+      _idSeq: 0,
+    };
+
+    // ─── Map preview (singleton) ───
+    let map = null, baseTile = null;
+    const lyrPorCapa = new Map(); // id -> Leaflet layer
+
+    function escapar(s) {
+      return String(s).replace(/[&<>"']/g, m =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])
+      );
+    }
+
+    function setStatus(arg, clase = '') {
+      if (!arg) { status.innerHTML = ''; status.className = 'status'; return; }
+      let title = arg, body = '', hint = '', type = clase;
+      if (typeof arg === 'object') {
+        title = arg.title; body = arg.body || ''; hint = arg.hint || ''; type = arg.type || clase;
+      }
+      const parts = [`<div class="status-title">${escapar(title)}</div>`];
+      if (body) parts.push(`<div class="status-body">${escapar(body)}</div>`);
+      if (hint) parts.push(`<div class="status-hint">💡 ${escapar(hint)}</div>`);
+      status.innerHTML = parts.join('');
+      status.className = 'status' + (type ? ' ' + type : '');
+    }
+
+    class ErrorAmigable extends Error {
+      constructor(title, body, hint) { super(title); this.amigable = true; this.title = title; this.body = body; this.hint = hint; }
+    }
+    function libNoCargada(qué) {
+      return new ErrorAmigable(
+        `No pude cargar las librerías para ${qué}.`,
+        'El builder necesita descargar pequeñas librerías desde internet (Leaflet, JSZip, togeojson, shpjs). Una no llegó.',
+        'Refresca con Ctrl+F5. Si persiste, desactiva el bloqueador de scripts para este sitio.'
+      );
+    }
+
+    function normalizarGeoJSON(data) {
+      if (data?.type === 'FeatureCollection') return data;
+      if (data?.type === 'Feature') return { type: 'FeatureCollection', features: [data] };
+      if (data?.type && data?.coordinates) {
+        return { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: data, properties: {} }] };
+      }
+      throw new ErrorAmigable(
+        'El archivo es un JSON pero no un GeoJSON.',
+        'Debe tener "type" con valor "FeatureCollection", "Feature" o el nombre de una geometría.',
+        'Busca la opción "exportar como GeoJSON" en tu sistema.'
+      );
+    }
+
+    async function parsearArchivo(file) {
+      const nombre = file.name.toLowerCase();
+      if (nombre.endsWith('.geojson') || nombre.endsWith('.json')) {
+        return { formato: 'GeoJSON', geojson: normalizarGeoJSON(JSON.parse(await file.text())) };
+      }
+      if (nombre.endsWith('.kml')) {
+        if (!window.toGeoJSON) throw libNoCargada('procesar KML');
+        const xml = new DOMParser().parseFromString(await file.text(), 'text/xml');
+        return { formato: 'KML', geojson: window.toGeoJSON.kml(xml) };
+      }
+      if (nombre.endsWith('.kmz')) {
+        if (!window.JSZip || !window.toGeoJSON) throw libNoCargada('procesar KMZ');
+        const zip = await window.JSZip.loadAsync(await file.arrayBuffer());
+        const kmlEntry = Object.values(zip.files).find(f => !f.dir && f.name.toLowerCase().endsWith('.kml'));
+        if (!kmlEntry) throw new ErrorAmigable(
+          'Este KMZ está vacío por dentro.',
+          'Un .kmz es un .zip que debe contener un .kml. El tuyo no lo trae.',
+          'Verifica con Google Earth que tenga geometrías.'
+        );
+        const xml = new DOMParser().parseFromString(await kmlEntry.async('string'), 'text/xml');
+        return { formato: 'KMZ', geojson: window.toGeoJSON.kml(xml) };
+      }
+      if (nombre.endsWith('.zip')) {
+        if (!window.shp) throw libNoCargada('procesar shapefile');
+        let result;
+        try { result = await window.shp(await file.arrayBuffer()); }
+        catch {
+          throw new ErrorAmigable(
+            'No pude leer el shapefile dentro del .zip.',
+            'Debe contener al menos .shp, .dbf y .shx (idealmente .prj).',
+            'Verifica el contenido del .zip antes de subirlo.'
+          );
+        }
+        if (Array.isArray(result)) {
+          return { formato: `Shapefile (${result.length} capas)`, geojson: { type: 'FeatureCollection', features: result.flatMap(fc => fc.features) } };
+        }
+        return { formato: 'Shapefile', geojson: result };
+      }
+      throw new ErrorAmigable(
+        'No reconozco ese tipo de archivo.',
+        `Recibí "${file.name}". Acepto GeoJSON, KML/KMZ y shapefile en .zip.`,
+        'Convierte primero si tienes Excel/CSV/PDF.'
+      );
+    }
+
+    function popupHtml(props) {
+      const entries = Object.entries(props || {}).filter(([k]) => !String(k).startsWith('__'));
+      if (entries.length === 0) return '<div style="color:#8fa3bf;font-style:italic">(sin propiedades)</div>';
+      const filas = entries.slice(0, 14).map(([k, v]) => {
+        const valStr = String(v ?? '');
+        let valHtml;
+        if (/^https?:\/\//i.test(valStr)) {
+          const acortado = valStr.length > 45 ? valStr.slice(0, 42) + '…' : valStr;
+          valHtml = `<a class="popup-link" href="${escapar(valStr)}" target="_blank" rel="noopener">${escapar(acortado)} ↗</a>`;
+        } else if (valStr === '' || valStr === 'null' || valStr === 'undefined') {
+          valHtml = '<span style="color:#4a6580">—</span>';
+        } else {
+          valHtml = escapar(valStr.length > 80 ? valStr.slice(0, 78) + '…' : valStr);
+        }
+        return `<tr><td>${escapar(k)}</td><td>${valHtml}</td></tr>`;
+      }).join('');
+      const masFilas = entries.length > 14
+        ? `<tr><td colspan="2" style="color:#4a6580;padding-top:6px;font-style:italic">+${entries.length - 14} propiedades más</td></tr>`
+        : '';
+      return `<table>${filas}${masFilas}</table>`;
+    }
+
+    function camposDeCapa(geojson) {
+      const set = new Set();
+      (geojson.features || []).slice(0, 200).forEach(f => {
+        Object.keys(f.properties || {}).forEach(k => { if (!k.startsWith('__')) set.add(k); });
+      });
+      return Array.from(set);
+    }
+
+    function generarPaleta(capa) {
+      const sim = capa.simbologia;
+      if (sim.modo !== 'categorico' || !sim.campo) return;
+      const valores = new Set();
+      (capa.geojson.features || []).forEach(f => {
+        const v = f.properties?.[sim.campo];
+        valores.add(v == null ? '' : String(v));
+      });
+      const arr = Array.from(valores).slice(0, MAX_CATEGORIAS);
+      const paleta = {};
+      arr.forEach((v, i) => { paleta[v] = PALETA[i % PALETA.length]; });
+      sim.paleta = paleta;
+    }
+
+    function colorDeFeature(capa, feat) {
+      const sim = capa.simbologia || { modo: 'unico' };
+      if (sim.modo === 'categorico' && sim.campo) {
+        const val = String(feat.properties?.[sim.campo] ?? '');
+        return sim.paleta?.[val] || '#7a8a9a';
+      }
+      return capa.color || '#2cd4e0';
+    }
+
+    // ─── Preview map ───
+    function asegurarMapa() {
+      if (map) return;
+      map = L.map('mapa-canvas', { center: [-37, -71], zoom: 4, zoomControl: true, worldCopyJump: true });
+    }
+
+    function aplicarBasemap() {
+      if (!map) return;
+      if (baseTile) { baseTile.remove(); baseTile = null; }
+      const cfg = BASEMAPS[state.basemap] || BASEMAPS['carto-dark'];
+      baseTile = L.tileLayer(cfg.url, { attribution: cfg.attr, subdomains: 'abcd', maxZoom: 19, noWrap: true }).addTo(map);
+    }
+
+    function pintarCapaEnPreview(capa) {
+      asegurarMapa();
+      const prev = lyrPorCapa.get(capa.id);
+      if (prev) { prev.remove(); lyrPorCapa.delete(capa.id); }
+      const POPUP_OPTS = { maxWidth: 360, minWidth: 220, autoPanPadding: [40, 40] };
+      const lyr = L.geoJSON(capa.geojson, {
+        style: feat => {
+          const c = colorDeFeature(capa, feat);
+          return { color: c, weight: 2, fillColor: c, fillOpacity: 0.18 };
+        },
+        pointToLayer: (feat, latlng) => {
+          const c = colorDeFeature(capa, feat);
+          return L.circleMarker(latlng, { radius: 6, color: c, weight: 2, fillColor: c, fillOpacity: 0.7 });
+        },
+        onEachFeature: (feat, l) => l.bindPopup(popupHtml(feat.properties), POPUP_OPTS),
+      }).addTo(map);
+      lyrPorCapa.set(capa.id, lyr);
+    }
+
+    function ajustarBoundsPreview() {
+      if (!map) return;
+      const all = L.latLngBounds([]);
+      lyrPorCapa.forEach(l => {
+        const b = l.getBounds();
+        if (b.isValid()) all.extend(b);
+      });
+      if (all.isValid()) map.fitBounds(all, { padding: [20, 20], maxZoom: 14 });
+    }
+
+    // ─── Renderizar capas list ───
+    function renderCapas() {
+      numCapasSpan.textContent = state.capas.length;
+      capasList.innerHTML = state.capas.map(capa => renderCapaCard(capa)).join('');
+    }
+
+    function renderCapaCard(capa) {
+      const sim = capa.simbologia || { modo: 'unico' };
+      const camposOpts = capa.campos.map(c =>
+        `<option value="${escapar(c)}" ${sim.campo === c ? 'selected' : ''}>${escapar(c)}</option>`
+      ).join('');
+      const paletaHtml = (sim.modo === 'categorico' && sim.paleta)
+        ? `<div class="capa-palette">
+             <div class="capa-palette-lbl">Paleta (${Object.keys(sim.paleta).length} categorías)</div>
+             ${Object.entries(sim.paleta).map(([k, color]) =>
+               `<span class="pal-chip"><span class="pal-chip-sw" style="background:${escapar(color)}"></span><span class="pal-chip-lbl" title="${escapar(k)}">${escapar(k || '(vacío)')}</span></span>`
+             ).join('')}
+           </div>`
+        : '';
+      const showColorPicker = sim.modo === 'unico';
+      return `
+        <div class="capa-card" style="--capa-color:${escapar(capa.color)}">
+          <div class="capa-head">
+            <div class="capa-head-info">
+              <div class="capa-archivo"><strong>${escapar(capa.formato)}</strong>${escapar(capa.nombreArchivo)} · ${capa.geojson.features.length} elemento(s)</div>
+            </div>
+            <button class="btn-eliminar" data-action="eliminar" data-id="${capa.id}">✕ eliminar</button>
+          </div>
+          <div class="capa-grid">
+            <label class="field">
+              <span class="field-lbl">Nombre en la leyenda</span>
+              <input type="text" data-action="nombre" data-id="${capa.id}" value="${escapar(capa.nombre)}" maxlength="60" />
+            </label>
+            <label class="field" style="${showColorPicker ? '' : 'visibility:hidden'}">
+              <span class="field-lbl">Color</span>
+              <input type="color" data-action="color" data-id="${capa.id}" value="${escapar(capa.color)}" />
+            </label>
+            <label class="field">
+              <span class="field-lbl">Simbología</span>
+              <select data-action="modo" data-id="${capa.id}">
+                <option value="unico" ${sim.modo === 'unico' ? 'selected' : ''}>Color único</option>
+                <option value="categorico" ${sim.modo === 'categorico' ? 'selected' : ''}>Por categoría</option>
+              </select>
+            </label>
+            <label class="field" style="${sim.modo === 'categorico' ? '' : 'visibility:hidden'}">
+              <span class="field-lbl">Campo</span>
+              <select data-action="campo" data-id="${capa.id}">
+                <option value="">— elige —</option>
+                ${camposOpts}
+              </select>
+            </label>
+            ${paletaHtml}
+          </div>
+        </div>`;
+    }
+
+    // Event delegation: capas list
+    capasList.addEventListener('input', e => {
+      const t = e.target;
+      const id = t.dataset.id;
+      const action = t.dataset.action;
+      if (!id || !action) return;
+      const capa = state.capas.find(c => c.id === id);
+      if (!capa) return;
+      if (action === 'nombre') { capa.nombre = t.value; return; }
+      if (action === 'color') { capa.color = t.value; pintarCapaEnPreview(capa); renderCapas(); return; }
+    });
+    capasList.addEventListener('change', e => {
+      const t = e.target;
+      const id = t.dataset.id;
+      const action = t.dataset.action;
+      if (!id || !action) return;
+      const capa = state.capas.find(c => c.id === id);
+      if (!capa) return;
+      if (action === 'modo') {
+        capa.simbologia = { modo: t.value };
+        if (t.value === 'categorico' && capa.campos.length > 0) {
+          capa.simbologia.campo = capa.campos[0];
+          generarPaleta(capa);
+        }
+        pintarCapaEnPreview(capa);
+        renderCapas();
+        return;
+      }
+      if (action === 'campo') {
+        capa.simbologia.campo = t.value || null;
+        if (capa.simbologia.campo) generarPaleta(capa);
+        else delete capa.simbologia.paleta;
+        pintarCapaEnPreview(capa);
+        renderCapas();
+        return;
+      }
+    });
+    capasList.addEventListener('click', e => {
+      const btn = e.target.closest('[data-action="eliminar"]');
+      if (!btn) return;
+      const id = btn.dataset.id;
+      const i = state.capas.findIndex(c => c.id === id);
+      if (i < 0) return;
+      const prev = lyrPorCapa.get(id);
+      if (prev) { prev.remove(); lyrPorCapa.delete(id); }
+      state.capas.splice(i, 1);
+      renderCapas();
+      if (state.capas.length === 0) {
+        resultado.style.display = 'none';
+        setStatus({ title: 'Sin capas. Sube un archivo para empezar.', type: '' });
+      }
+    });
+
+    // ─── Manejar archivos ───
+    async function manejarArchivos(files) {
+      if (!files || files.length === 0) return;
+      setStatus(`Procesando ${files.length} archivo(s)…`);
+      const errores = [];
+      let agregadas = 0;
+      for (const file of files) {
+        try {
+          const { formato, geojson } = await parsearArchivo(file);
+          if (!geojson.features || geojson.features.length === 0) {
+            errores.push(`${file.name}: sin geometrías.`);
+            continue;
+          }
+          const id = `c${++state._idSeq}`;
+          const nombreBase = file.name.replace(/\.[^.]+$/, '');
+          const idx = state.capas.length;
+          const capa = {
+            id,
+            nombre: nombreBase,
+            nombreArchivo: file.name,
+            formato,
+            color: PALETA[idx % PALETA.length],
+            simbologia: { modo: 'unico' },
+            geojson,
+            campos: camposDeCapa(geojson),
+          };
+          state.capas.push(capa);
+          agregadas++;
+          if (state.capas.length === 1 && (!inTitulo.value || inTitulo.value === 'Mi mapa')) {
+            inTitulo.value = nombreBase;
+            state.titulo = nombreBase;
+          }
+        } catch (e) {
+          if (e?.amigable) errores.push(`${file.name}: ${e.title}`);
+          else errores.push(`${file.name}: ${e?.message || e}`);
+        }
+      }
+      if (agregadas > 0) {
+        resultado.style.display = 'flex';
+        renderCapas();
+        await new Promise(r => requestAnimationFrame(r));
+        asegurarMapa(); aplicarBasemap();
+        state.capas.forEach(pintarCapaEnPreview);
+        ajustarBoundsPreview();
+      }
+      if (errores.length > 0) {
+        setStatus({
+          title: `${agregadas} capa(s) agregada(s), ${errores.length} con error.`,
+          body: errores.join(' · '),
+          type: agregadas > 0 ? '' : 'error',
+        });
+      } else {
+        setStatus({
+          title: `✓ ${agregadas} capa(s) agregada(s). Ya tienes ${state.capas.length} en total.`,
+          body: 'Configura colores/simbología por capa, y descarga tu kit abajo.',
+          type: 'success',
+        });
+      }
+      fileInput.value = '';
+    }
+
+    fileInput.addEventListener('change', e => manejarArchivos(Array.from(e.target.files || [])));
+    ['dragenter', 'dragover'].forEach(ev =>
+      dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('drag'); })
+    );
+    ['dragleave', 'drop'].forEach(ev =>
+      dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('drag'); })
+    );
+    dropzone.addEventListener('drop', e => {
+      const files = Array.from(e.dataTransfer?.files || []);
+      if (files.length) manejarArchivos(files);
+    });
+
+    inTitulo.addEventListener('input', () => { state.titulo = inTitulo.value; });
+    inBasemap.addEventListener('change', () => { state.basemap = inBasemap.value; aplicarBasemap(); });
+
+    // ─── Construir config del kit ───
+    function configParaKit({ modoExterno = false } = {}) {
+      return {
+        titulo: state.titulo || 'Mi mapa',
+        basemap: state.basemap,
+        capas: state.capas.map((c, i) => {
+          const out = {
+            nombre: c.nombre || `Capa ${i + 1}`,
+            color: c.color,
+            simbologia: c.simbologia,
+          };
+          if (modoExterno) out.archivo = `data/capa-${i}.geojson`;
+          else out.datos = c.geojson;
+          return out;
+        }),
+      };
+    }
+
+    function slug(s) {
+      return String(s || 'mi-mapa').toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'mi-mapa';
+    }
+
+    async function cargarPlantilla(nombre) {
+      const res = await fetch(`${BASE_URL}/kit-webmap/template-${nombre}`);
+      if (!res.ok) throw new Error(`No pude cargar plantilla "${nombre}" (HTTP ${res.status}).`);
+      return await res.text();
+    }
+
+    function aplicarPlaceholders(tpl, vars) {
+      let out = tpl;
+      for (const [k, v] of Object.entries(vars)) out = out.split(`{{${k}}}`).join(v);
+      return out;
+    }
+
+    async function renderHTMLKit({ modoExterno = false } = {}) {
+      const tpl = await cargarPlantilla('index.html');
+      const cfg = configParaKit({ modoExterno });
+      const titulo = cfg.titulo;
+      const kitConfigJson = JSON.stringify(cfg).replace(/<\/script/gi, '<\\/script');
+      let html = aplicarPlaceholders(tpl, {
+        TITULO: escapar(titulo),
+        KIT_CONFIG: modoExterno ? '' : kitConfigJson,
+      });
+      if (modoExterno) {
+        html = html.replace(/<!-- STYLE_REF -->[\s\S]*?<\/style>/, '<link rel="stylesheet" href="./style.css" />');
+      }
+      return html;
+    }
+
+    function descargar(blob, nombre) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = nombre; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function chequear() {
+      if (state.capas.length === 0) {
+        setStatus({ title: 'Sube al menos una capa antes de descargar.', type: 'error' });
+        return false;
+      }
+      return true;
+    }
+
+    async function descargarHTML() {
+      if (!chequear()) return;
+      try {
+        const html = await renderHTMLKit({ modoExterno: false });
+        descargar(new Blob([html], { type: 'text/html;charset=utf-8' }), `${slug(state.titulo)}.html`);
+        setStatus({ title: '✓ Mapa .html descargado.', body: 'Ábrelo con doble click o súbelo a cualquier hosting.', type: 'success' });
+      } catch (e) {
+        console.error(e);
+        setStatus({ title: 'No pude generar el .html.', body: e?.message || String(e), type: 'error' });
+      }
+    }
+
+    async function descargarZIP() {
+      if (!chequear()) return;
+      if (!window.JSZip) { setStatus(libNoCargada('generar el .zip')); return; }
+      try {
+        const carpeta = slug(state.titulo);
+        const [html, css, readme] = await Promise.all([
+          renderHTMLKit({ modoExterno: true }),
+          cargarPlantilla('style.css'),
+          cargarPlantilla('README.md'),
+        ]);
+        const cfg = configParaKit({ modoExterno: true });
+        const readmeFinal = aplicarPlaceholders(readme, {
+          TITULO: state.titulo,
+          NOMBRE_ARCHIVO: carpeta,
+          NUM_CAPAS: String(state.capas.length),
+        });
+        const zip = new window.JSZip();
+        const root = zip.folder(carpeta);
+        root.file('index.html', html);
+        root.file('config.json', JSON.stringify(cfg, null, 2));
+        root.file('style.css', css);
+        root.file('README.md', readmeFinal);
+        const dataDir = root.folder('data');
+        state.capas.forEach((c, i) => {
+          dataDir.file(`capa-${i}.geojson`, JSON.stringify(c.geojson));
+        });
+        const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+        descargar(blob, `${carpeta}.zip`);
+        setStatus({ title: '✓ Kit .zip descargado.', body: 'Descomprime y abre README.md para los pasos de publicación.', type: 'success' });
+      } catch (e) {
+        console.error(e);
+        setStatus({ title: 'No pude generar el .zip.', body: e?.message || String(e), type: 'error' });
+      }
+    }
+
+    btnHtml.addEventListener('click', descargarHTML);
+    btnZip.addEventListener('click', descargarZIP);
+  })();
+</script>
