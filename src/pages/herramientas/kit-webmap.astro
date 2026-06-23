@@ -13,7 +13,10 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   <Header />
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.min.css" />
   <script is:inline src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script is:inline src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
   <script is:inline src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script is:inline src="https://cdnjs.cloudflare.com/ajax/libs/togeojson/0.16.0/togeojson.min.js"></script>
   <script is:inline src="https://unpkg.com/shpjs@4.0.4/dist/shp.min.js"></script>
@@ -290,6 +293,15 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   .pal-chip-lbl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   .capa-hint { font-size: 11.5px; color: var(--t3); margin-top: 0.6rem; font-style: italic; }
+  .capa-warn {
+    grid-column: 1 / -1;
+    margin-top: 0.4rem;
+    padding: 6px 10px;
+    background: rgba(244,130,10,0.08);
+    border: 1px solid rgba(244,130,10,0.3);
+    border-radius: 4px;
+    color: #ffcc80; font-size: 11.5px; line-height: 1.5;
+  }
 
   .config-step-row {
     display: flex; align-items: center; justify-content: space-between;
@@ -501,6 +513,15 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     border-radius: 2px; border: 1px solid rgba(255,255,255,0.15); flex-shrink: 0;
   }
   .legend-swatch.point { border-radius: 50%; }
+  .marker-cluster { background: rgba(44,212,224,0.18) !important; }
+  .marker-cluster div {
+    background: rgba(44,212,224,0.55) !important;
+    color: #06121a !important; font-weight: 700 !important;
+    font-family: ui-monospace, monospace !important; font-size: 11px !important;
+  }
+  .marker-cluster-small div  { background: rgba(61,214,140,0.65) !important; }
+  .marker-cluster-medium div { background: rgba(244,130,10,0.7) !important; color: #06121a !important; }
+  .marker-cluster-large div  { background: rgba(230,57,70,0.75) !important; color: #fff !important; }
 
   .kw-fs-btn {
     width: 30px; height: 30px;
@@ -541,6 +562,50 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       '#10b981','#ef4444','#8b5cf6','#ec4899','#14b8a6','#06b6d4'
     ];
     const MAX_CATEGORIAS = 12;
+    const RAMPAS = {
+      verde:   ['#e8f5e9','#c8e6c9','#a5d6a7','#81c784','#66bb6a','#43a047','#1b5e20'],
+      azul:    ['#e3f2fd','#bbdefb','#90caf9','#64b5f6','#42a5f5','#1e88e5','#0d47a1'],
+      rojo:    ['#ffebee','#ffcdd2','#ef9a9a','#e57373','#ef5350','#e53935','#7f0000'],
+      naranja: ['#fff3e0','#ffe0b2','#ffcc80','#ffb74d','#ffa726','#fb8c00','#bf360c'],
+      morado:  ['#f3e5f5','#e1bee7','#ce93d8','#ba68c8','#ab47bc','#8e24aa','#4a148c'],
+      viridis: ['#440154','#443a83','#31688e','#21918c','#35b779','#90d743','#fde725'],
+      inferno: ['#000004','#280b53','#65156e','#9f2a63','#d44842','#f57d15','#fcffa4'],
+    };
+    function tomarRampa(nombre, n) {
+      const r = RAMPAS[nombre] || RAMPAS.verde;
+      if (n <= 1) return [r[Math.floor(r.length/2)]];
+      const out = [];
+      for (let i = 0; i < n; i++) out.push(r[Math.round(i * (r.length - 1) / (n - 1))]);
+      return out;
+    }
+    function calcularBreaks(valores, n, metodo) {
+      const vals = valores.filter(v => Number.isFinite(v)).slice().sort((a, b) => a - b);
+      if (vals.length === 0) return null;
+      const min = vals[0], max = vals[vals.length - 1];
+      if (min === max) return [min, max];
+      if (metodo === 'iguales') {
+        const step = (max - min) / n;
+        const out = [];
+        for (let i = 0; i <= n; i++) out.push(min + i * step);
+        return out;
+      }
+      // quantiles
+      const out = [min];
+      for (let i = 1; i < n; i++) {
+        out.push(vals[Math.floor(i * vals.length / n)]);
+      }
+      out.push(max);
+      return out;
+    }
+    function fmtBreak(n) {
+      if (!isFinite(n)) return '—';
+      const abs = Math.abs(n);
+      if (abs >= 1e6) return (n / 1e6).toFixed(1).replace(/\.0$/, '') + 'M';
+      if (abs >= 1e4) return (n / 1e3).toFixed(0) + 'k';
+      if (abs >= 100) return n.toFixed(0);
+      if (Number.isInteger(n)) return String(n);
+      return n.toFixed(2);
+    }
 
     // ─── State ───
     const state = {
@@ -675,6 +740,29 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       return Array.from(set);
     }
 
+    function camposNumericosDeCapa(geojson, campos) {
+      const feats = (geojson.features || []).slice(0, 200);
+      return campos.filter(k => {
+        let validos = 0, numericos = 0;
+        feats.forEach(f => {
+          const v = f.properties?.[k];
+          if (v == null || v === '') return;
+          validos++;
+          if (Number.isFinite(Number(v))) numericos++;
+        });
+        return validos >= 3 && numericos / validos >= 0.8;
+      });
+    }
+
+    function generarGraduado(capa) {
+      const sim = capa.simbologia;
+      if (sim.modo !== 'graduado' || !sim.campo) return;
+      const valores = (capa.geojson.features || []).map(f => Number(f.properties?.[sim.campo])).filter(Number.isFinite);
+      const n = sim.clases || 5;
+      sim.breaks = calcularBreaks(valores, n, sim.metodo || 'quantiles') || [];
+      sim.colores = tomarRampa(sim.rampa || 'verde', n);
+    }
+
     function generarPaleta(capa) {
       const sim = capa.simbologia;
       if (sim.modo !== 'categorico' || !sim.campo) return;
@@ -695,7 +783,25 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         const val = String(feat.properties?.[sim.campo] ?? '');
         return sim.paleta?.[val] || '#7a8a9a';
       }
+      if (sim.modo === 'graduado' && sim.campo && sim.breaks && sim.colores) {
+        const num = Number(feat.properties?.[sim.campo]);
+        if (!Number.isFinite(num)) return '#7a8a9a';
+        for (let i = 1; i < sim.breaks.length; i++) {
+          if (num <= sim.breaks[i]) return sim.colores[i - 1] || sim.colores[sim.colores.length - 1];
+        }
+        return sim.colores[sim.colores.length - 1];
+      }
       return capa.color || '#2cd4e0';
+    }
+
+    function contarPuntos(geojson) {
+      let n = 0;
+      ((geojson && geojson.features) || []).forEach(f => {
+        const t = f.geometry?.type;
+        if (t === 'Point') n++;
+        else if (t === 'MultiPoint') n += (f.geometry.coordinates || []).length;
+      });
+      return n;
     }
 
     // ─── Preview map ───
@@ -716,18 +822,50 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       const prev = lyrPorCapa.get(capa.id);
       if (prev) { prev.remove(); lyrPorCapa.delete(capa.id); }
       const POPUP_OPTS = { maxWidth: 360, minWidth: 220, autoPanPadding: [40, 40] };
-      const lyr = L.geoJSON(capa.geojson, {
-        style: feat => {
+      const sim = capa.simbologia || { modo: 'unico' };
+      const totalPuntos = contarPuntos(capa.geojson);
+      const usarCluster = totalPuntos > 100 && sim.modo !== 'categorico' && window.L?.markerClusterGroup;
+
+      const grupo = L.featureGroup();
+      if (usarCluster) {
+        const cluster = L.markerClusterGroup({
+          showCoverageOnHover: false, spiderfyOnMaxZoom: true,
+          maxClusterRadius: 55, chunkedLoading: true,
+        });
+        const noPuntos = L.featureGroup();
+        (capa.geojson.features || []).forEach(feat => {
           const c = colorDeFeature(capa, feat);
-          return { color: c, weight: 2, fillColor: c, fillOpacity: 0.18 };
-        },
-        pointToLayer: (feat, latlng) => {
-          const c = colorDeFeature(capa, feat);
-          return L.circleMarker(latlng, { radius: 6, color: c, weight: 2, fillColor: c, fillOpacity: 0.7 });
-        },
-        onEachFeature: (feat, l) => l.bindPopup(popupHtml(capa, feat.properties), POPUP_OPTS),
-      }).addTo(map);
-      lyrPorCapa.set(capa.id, lyr);
+          const t = feat.geometry?.type;
+          if (t === 'Point' || t === 'MultiPoint') {
+            const coords = t === 'Point' ? [feat.geometry.coordinates] : feat.geometry.coordinates;
+            coords.forEach(xy => {
+              const m = L.circleMarker([xy[1], xy[0]], { radius: 6, color: c, weight: 2, fillColor: c, fillOpacity: 0.7 });
+              m.bindPopup(popupHtml(capa, feat.properties), POPUP_OPTS);
+              cluster.addLayer(m);
+            });
+          } else if (feat.geometry) {
+            const l = L.geoJSON(feat, { style: { color: c, weight: 2, fillColor: c, fillOpacity: 0.18 } });
+            l.bindPopup(popupHtml(capa, feat.properties), POPUP_OPTS);
+            l.addTo(noPuntos);
+          }
+        });
+        cluster.addTo(grupo);
+        noPuntos.addTo(grupo);
+      } else {
+        L.geoJSON(capa.geojson, {
+          style: feat => {
+            const c = colorDeFeature(capa, feat);
+            return { color: c, weight: 2, fillColor: c, fillOpacity: 0.18 };
+          },
+          pointToLayer: (feat, latlng) => {
+            const c = colorDeFeature(capa, feat);
+            return L.circleMarker(latlng, { radius: 6, color: c, weight: 2, fillColor: c, fillOpacity: 0.7 });
+          },
+          onEachFeature: (feat, l) => l.bindPopup(popupHtml(capa, feat.properties), POPUP_OPTS),
+        }).addTo(grupo);
+      }
+      grupo.addTo(map);
+      lyrPorCapa.set(capa.id, grupo);
     }
 
     function ajustarBoundsPreview() {
@@ -748,7 +886,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
     function renderCapaCard(capa) {
       const sim = capa.simbologia || { modo: 'unico' };
-      const camposOpts = capa.campos.map(c =>
+      const camposParaModo = sim.modo === 'graduado' ? capa.camposNumericos : capa.campos;
+      const camposOpts = camposParaModo.map(c =>
         `<option value="${escapar(c)}" ${sim.campo === c ? 'selected' : ''}>${escapar(c)}</option>`
       ).join('');
       const popupSel = capa.popupCampos; // null = todos
@@ -775,7 +914,39 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
              ).join('')}
            </div>`
         : '';
+      const rampaHtml = (sim.modo === 'graduado' && sim.breaks && sim.colores)
+        ? `<div class="capa-palette">
+             <div class="capa-palette-lbl">Rangos (${sim.colores.length} clases)</div>
+             ${sim.colores.map((color, i) =>
+               `<span class="pal-chip"><span class="pal-chip-sw" style="background:${escapar(color)}"></span><span class="pal-chip-lbl">${escapar(fmtBreak(sim.breaks[i]) + ' – ' + fmtBreak(sim.breaks[i+1]))}</span></span>`
+             ).join('')}
+           </div>`
+        : '';
       const showColorPicker = sim.modo === 'unico';
+      const numericosOk = capa.camposNumericos.length > 0;
+      const graduadoExtra = sim.modo === 'graduado' ? `
+        <label class="field">
+          <span class="field-lbl">Método</span>
+          <select data-action="metodo" data-id="${capa.id}">
+            <option value="quantiles" ${sim.metodo === 'quantiles' || !sim.metodo ? 'selected' : ''}>Quantiles</option>
+            <option value="iguales" ${sim.metodo === 'iguales' ? 'selected' : ''}>Intervalos iguales</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="field-lbl">Clases</span>
+          <select data-action="clases" data-id="${capa.id}">
+            ${[3,4,5,6,7].map(n => `<option value="${n}" ${sim.clases === n || (!sim.clases && n === 5) ? 'selected' : ''}>${n}</option>`).join('')}
+          </select>
+        </label>
+        <label class="field">
+          <span class="field-lbl">Rampa</span>
+          <select data-action="rampa" data-id="${capa.id}">
+            ${Object.keys(RAMPAS).map(k => `<option value="${k}" ${sim.rampa === k || (!sim.rampa && k === 'verde') ? 'selected' : ''}>${k}</option>`).join('')}
+          </select>
+        </label>` : '';
+      const avisoSinNumericos = (sim.modo === 'graduado' && !numericosOk)
+        ? `<div class="capa-warn">Esta capa no tiene campos numéricos. Cambia a "Color único" o "Por categoría".</div>`
+        : '';
       return `
         <div class="capa-card" style="--capa-color:${escapar(capa.color)}">
           <div class="capa-head">
@@ -798,16 +969,20 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
               <select data-action="modo" data-id="${capa.id}">
                 <option value="unico" ${sim.modo === 'unico' ? 'selected' : ''}>Color único</option>
                 <option value="categorico" ${sim.modo === 'categorico' ? 'selected' : ''}>Por categoría</option>
+                <option value="graduado" ${sim.modo === 'graduado' ? 'selected' : ''} ${numericosOk ? '' : 'disabled'}>Graduado (numérico${numericosOk ? '' : ' — sin campos'})</option>
               </select>
             </label>
-            <label class="field" style="${sim.modo === 'categorico' ? '' : 'visibility:hidden'}">
+            <label class="field" style="${(sim.modo === 'categorico' || sim.modo === 'graduado') ? '' : 'visibility:hidden'}">
               <span class="field-lbl">Campo</span>
               <select data-action="campo" data-id="${capa.id}">
                 <option value="">— elige —</option>
                 ${camposOpts}
               </select>
             </label>
+            ${graduadoExtra}
+            ${avisoSinNumericos}
             ${paletaHtml}
+            ${rampaHtml}
             ${popupHtmlBlock}
           </div>
         </div>`;
@@ -836,14 +1011,29 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         if (t.value === 'categorico' && capa.campos.length > 0) {
           capa.simbologia.campo = capa.campos[0];
           generarPaleta(capa);
+        } else if (t.value === 'graduado' && capa.camposNumericos.length > 0) {
+          Object.assign(capa.simbologia, { campo: capa.camposNumericos[0], metodo: 'quantiles', clases: 5, rampa: 'verde' });
+          generarGraduado(capa);
         }
         pintarCapaEnPreview(capa); renderCapas(); persist();
         return;
       }
       if (action === 'campo') {
         capa.simbologia.campo = t.value || null;
-        if (capa.simbologia.campo) generarPaleta(capa);
-        else delete capa.simbologia.paleta;
+        if (capa.simbologia.modo === 'categorico') {
+          if (capa.simbologia.campo) generarPaleta(capa);
+          else delete capa.simbologia.paleta;
+        } else if (capa.simbologia.modo === 'graduado') {
+          if (capa.simbologia.campo) generarGraduado(capa);
+          else { delete capa.simbologia.breaks; delete capa.simbologia.colores; }
+        }
+        pintarCapaEnPreview(capa); renderCapas(); persist();
+        return;
+      }
+      if (action === 'metodo' || action === 'clases' || action === 'rampa') {
+        if (action === 'clases') capa.simbologia.clases = parseInt(t.value, 10);
+        else capa.simbologia[action] = t.value;
+        generarGraduado(capa);
         pintarCapaEnPreview(capa); renderCapas(); persist();
         return;
       }
@@ -902,6 +1092,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
           const id = `c${++state._idSeq}`;
           const nombreBase = file.name.replace(/\.[^.]+$/, '');
           const idx = state.capas.length;
+          const camposAll = camposDeCapa(geojson);
+          const camposNum = camposNumericosDeCapa(geojson, camposAll);
           const capa = {
             id,
             nombre: nombreBase,
@@ -911,7 +1103,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
             simbologia: { modo: 'unico' },
             popupCampos: null,
             geojson,
-            campos: camposDeCapa(geojson),
+            campos: camposAll,
+            camposNumericos: camposNum,
           };
           state.capas.push(capa);
           agregadas++;
@@ -996,12 +1189,12 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
           capas: state.capas.map(c => ({
             id: c.id, nombre: c.nombre, nombreArchivo: c.nombreArchivo,
             formato: c.formato, color: c.color, simbologia: c.simbologia,
-            popupCampos: c.popupCampos, geojson: c.geojson, campos: c.campos,
+            popupCampos: c.popupCampos, geojson: c.geojson,
+            campos: c.campos, camposNumericos: c.camposNumericos,
           })),
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(snap));
       } catch (e) {
-        // Quota excedida o modo privado — guardar solo metadata sin geojson
         try {
           const lite = {
             titulo: state.titulo, basemap: state.basemap, _idSeq: state._idSeq,
@@ -1022,6 +1215,11 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         const saved = JSON.parse(raw);
         const conDatos = (saved.capas || []).filter(c => c.geojson && !c._lite);
         const sinDatos = (saved.capas || []).filter(c => !c.geojson || c._lite);
+        // Backfill: sesiones viejas pueden no tener camposNumericos
+        conDatos.forEach(c => {
+          if (!c.campos) c.campos = camposDeCapa(c.geojson);
+          if (!c.camposNumericos) c.camposNumericos = camposNumericosDeCapa(c.geojson, c.campos);
+        });
         state.titulo = saved.titulo || 'Mi mapa';
         state.basemap = saved.basemap || 'carto-dark';
         state._idSeq = saved._idSeq || 0;

@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{{TITULO}}</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.min.css" />
   <!-- STYLE_REF -->
   <style>
     :root {
@@ -128,6 +130,19 @@
     .legend-capa { margin-bottom: 8px; }
     .legend-capa:last-child { margin-bottom: 0; }
     .legend-capa-name { color: #e8f0fe; font-weight: 500; margin-bottom: 3px; }
+    .legend-capa-sub {
+      color: #4a6580; font-size: 10.5px; font-family: ui-monospace, monospace;
+      margin-bottom: 3px; padding-left: 2px;
+    }
+    .marker-cluster { background: rgba(44,212,224,0.18) !important; }
+    .marker-cluster div {
+      background: rgba(44,212,224,0.55) !important;
+      color: #06121a !important; font-weight: 700 !important;
+      font-family: ui-monospace, monospace !important; font-size: 11px !important;
+    }
+    .marker-cluster-small div  { background: rgba(61,214,140,0.65) !important; }
+    .marker-cluster-medium div { background: rgba(244,130,10,0.7) !important; color: #06121a !important; }
+    .marker-cluster-large div  { background: rgba(230,57,70,0.75) !important; color: #fff !important; }
     .legend-entry { display: flex; align-items: center; gap: 6px; padding: 1px 0; color: #8fa3bf; cursor: default; }
     .legend-entry.filterable { cursor: pointer; user-select: none; }
     .legend-entry.filterable:hover { color: #e8f0fe; }
@@ -206,6 +221,7 @@
   <script id="kit-config" type="application/json">{{KIT_CONFIG}}</script>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
   <script>
     (function () {
       var BASEMAPS = {
@@ -255,7 +271,26 @@
           var val = String(feat.properties == null ? '' : (feat.properties[sim.campo] == null ? '' : feat.properties[sim.campo]));
           return (sim.paleta && sim.paleta[val]) || '#7a8a9a';
         }
+        if (sim.modo === 'graduado' && sim.campo && sim.breaks && sim.colores) {
+          var num = Number(feat.properties == null ? NaN : feat.properties[sim.campo]);
+          if (!isFinite(num)) return '#7a8a9a';
+          var br = sim.breaks, co = sim.colores;
+          for (var i = 1; i < br.length; i++) {
+            if (num <= br[i]) return co[i - 1] || co[co.length - 1];
+          }
+          return co[co.length - 1];
+        }
         return capa.color || '#2cd4e0';
+      }
+
+      function fmtNum(n) {
+        if (!isFinite(n)) return '—';
+        var abs = Math.abs(n);
+        if (abs >= 1000000) return (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+        if (abs >= 10000) return (n / 1000).toFixed(0) + 'k';
+        if (abs >= 100) return n.toFixed(0);
+        if (Number.isInteger(n)) return String(n);
+        return n.toFixed(2);
       }
 
       function mostrarError(html) {
@@ -281,6 +316,28 @@
         return lyr;
       }
 
+      function contarPuntos(geojson) {
+        var n = 0;
+        ((geojson && geojson.features) || []).forEach(function (f) {
+          var t = f.geometry && f.geometry.type;
+          if (t === 'Point') n++;
+          else if (t === 'MultiPoint') n += (f.geometry.coordinates || []).length;
+        });
+        return n;
+      }
+
+      function nuevoGrupoPuntos(usarCluster) {
+        if (usarCluster && window.L && L.markerClusterGroup) {
+          return L.markerClusterGroup({
+            showCoverageOnHover: false,
+            spiderfyOnMaxZoom: true,
+            maxClusterRadius: 55,
+            chunkedLoading: true,
+          });
+        }
+        return L.featureGroup();
+      }
+
       // Para capas categóricas: crea un subgrupo por categoría, agrupa los features en el correspondiente
       function construirCapa(capa) {
         var sim = capa.simbologia || { modo: 'unico' };
@@ -290,10 +347,11 @@
         capa._tieneOtros = false;
 
         var feats = (capa.datos && capa.datos.features) || [];
+        var totalPuntos = contarPuntos(capa.datos);
+        var usarCluster = (capa.cluster !== false) && totalPuntos > 100 && sim.modo !== 'categorico';
 
         if (sim.modo === 'categorico' && sim.campo && sim.paleta) {
           var subs = {};
-          // entradas conocidas
           Object.keys(sim.paleta).forEach(function (k) { subs[k] = L.featureGroup(); });
           subs.__otros__ = L.featureGroup();
           var hayOtros = false;
@@ -317,6 +375,24 @@
             subs[k].addTo(grupo);
           });
           capa._gruposPorCategoria = subs;
+        } else if (usarCluster) {
+          // Modo unico/graduado con cluster: puntos al cluster, no-puntos a otro grupo
+          var clusterGrp = nuevoGrupoPuntos(true);
+          var noPuntos = L.featureGroup();
+          feats.forEach(function (feat) {
+            var t = feat.geometry && feat.geometry.type;
+            if (t === 'Point' || t === 'MultiPoint') {
+              capa._tienePuntos = true;
+              var coords = t === 'Point' ? [feat.geometry.coordinates] : feat.geometry.coordinates;
+              coords.forEach(function (xy) {
+                buildLayerForFeature(capa, feat, L.latLng(xy[1], xy[0])).addTo(clusterGrp);
+              });
+            } else {
+              buildLayerForFeature(capa, feat, null).addTo(noPuntos);
+            }
+          });
+          clusterGrp.addTo(grupo);
+          noPuntos.addTo(grupo);
         } else {
           var lyrAll = L.geoJSON(capa.datos, {
             style: function (feat) {
@@ -360,6 +436,15 @@
                   '<span class="' + swatchClass + '" style="background:#7a8a9a"></span>' +
                   '<span style="color:#4a6580">Otros</span>' +
                 '</label>'
+              );
+            }
+          } else if (sim.modo === 'graduado' && sim.breaks && sim.colores) {
+            partes.push('<div class="legend-capa-sub">' + escapar(sim.campo || '') + '</div>');
+            for (var i = 0; i < sim.colores.length; i++) {
+              var lo = sim.breaks[i], hi = sim.breaks[i + 1];
+              var label = fmtNum(lo) + ' – ' + fmtNum(hi);
+              partes.push(
+                '<div class="legend-entry"><span class="' + swatchClass + '" style="background:' + escapar(sim.colores[i]) + '"></span>' + escapar(label) + '</div>'
               );
             }
           } else {

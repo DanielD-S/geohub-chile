@@ -121,6 +121,19 @@ html, body { margin: 0; padding: 0; height: 100%; background: var(--void); color
 .legend-capa { margin-bottom: 8px; }
 .legend-capa:last-child { margin-bottom: 0; }
 .legend-capa-name { color: #e8f0fe; font-weight: 500; margin-bottom: 3px; }
+.legend-capa-sub {
+  color: #4a6580; font-size: 10.5px; font-family: ui-monospace, monospace;
+  margin-bottom: 3px; padding-left: 2px;
+}
+.marker-cluster { background: rgba(44,212,224,0.18) !important; }
+.marker-cluster div {
+  background: rgba(44,212,224,0.55) !important;
+  color: #06121a !important; font-weight: 700 !important;
+  font-family: ui-monospace, monospace !important; font-size: 11px !important;
+}
+.marker-cluster-small div  { background: rgba(61,214,140,0.65) !important; }
+.marker-cluster-medium div { background: rgba(244,130,10,0.7) !important; color: #06121a !important; }
+.marker-cluster-large div  { background: rgba(230,57,70,0.75) !important; color: #fff !important; }
 .legend-entry { display: flex; align-items: center; gap: 6px; padding: 1px 0; color: #8fa3bf; cursor: default; }
 .legend-entry.filterable { cursor: pointer; user-select: none; }
 .legend-entry.filterable:hover { color: #e8f0fe; }

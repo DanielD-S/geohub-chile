@@ -102,6 +102,27 @@ Edita `config.json`. Cada capa tiene esta forma:
 
 Los valores no incluidos en `paleta` salen en gris (`#7a8a9a`) y aparecen como "Otros" en la leyenda.
 
+**Simbología graduada** — color por rangos numéricos (coropleta):
+
+```json
+"simbologia": {
+  "modo": "graduado",
+  "campo": "poblacion",
+  "metodo": "quantiles",
+  "clases": 5,
+  "rampa": "verde",
+  "breaks":  [0, 1500, 8200, 32000, 120000, 850000],
+  "colores": ["#e8f5e9","#a5d6a7","#66bb6a","#388e3c","#1b5e20"]
+}
+```
+
+- `metodo`: `quantiles` (igual cantidad de features por clase) o `iguales` (intervalos numéricos iguales).
+- `clases`: número de rangos (3-7).
+- `rampa`: `verde`, `azul`, `rojo`, `naranja`, `morado`, `viridis`, `inferno`.
+- `breaks` y `colores` se calculan automáticamente desde el builder, pero los puedes editar a mano para personalizar los cortes.
+
+Valores no numéricos o nulos salen en gris (`#7a8a9a`).
+
 ### Agregar una capa nueva
 
 1. Pon tu GeoJSON en `data/capa-N.geojson` (con el siguiente número libre).
@@ -121,6 +142,7 @@ Edita `style.css` — las variables CSS al inicio (`--verde`, `--surface`, `--t1
 - **Leyenda interactiva** (abajo izquierda): muestra colores y categorías. En capas con simbología por categoría, **cada entrada tiene un checkbox** que filtra esos features sin recargar.
 - **Escala** (abajo izquierda): en kilómetros.
 - **Popup**: click sobre una geometría muestra sus propiedades (configurable vía `popupCampos`); las URLs son clicables.
+- **Cluster de puntos**: si una capa tiene más de 100 puntos (y no usa simbología categórica), se agrupan automáticamente al alejar el zoom. Para forzar desactivarlo, agrega `"cluster": false` a la capa en `config.json`.
 
 ### Limitar campos en el popup
 
