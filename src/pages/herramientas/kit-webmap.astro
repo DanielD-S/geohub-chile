@@ -45,51 +45,51 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       </summary>
       <div class="features-grid">
         <div class="feature">
-          <div class="feature-h">📥 Entrada</div>
+          <div class="feature-h"><svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Entrada</div>
           <p>Sube varios archivos a la vez: <code>.geojson</code> · <code>.json</code> · <code>.kml</code> · <code>.kmz</code> · <code>.zip</code> con shapefile (.shp+.dbf+.shx+.prj).</p>
         </div>
         <div class="feature">
-          <div class="feature-h">🎨 Simbología</div>
+          <div class="feature-h"><svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="1"/><circle cx="17.5" cy="10.5" r="1"/><circle cx="8.5" cy="7.5" r="1"/><circle cx="6.5" cy="12.5" r="1"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg> Simbología</div>
           <p>3 modos por capa: <strong>color único</strong>, <strong>por categoría</strong> (paleta automática por valor de un campo) o <strong>graduado</strong> (coropleta con 3-7 clases por quantiles o intervalos iguales, 7 rampas).</p>
         </div>
         <div class="feature">
-          <div class="feature-h">🗺️ Basemaps</div>
+          <div class="feature-h"><svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg> Basemaps</div>
           <p>5 opciones precargadas: CARTO Dark, CARTO Light, OpenStreetMap, Esri Satélite, OpenTopoMap. El usuario final cambia entre ellas con el selector del mapa.</p>
         </div>
         <div class="feature">
-          <div class="feature-h">📋 Leyenda interactiva</div>
+          <div class="feature-h"><svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> Leyenda interactiva</div>
           <p>Colapsable, con <strong>checkboxes por categoría</strong> que filtran features sin recargar. Muestra rangos con etiquetas (<code>1.5k – 8.2k</code>) en capas graduadas.</p>
         </div>
         <div class="feature">
-          <div class="feature-h">🔍 Buscador</div>
+          <div class="feature-h"><svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Buscador</div>
           <p>Barra de búsqueda por dirección o lugar (geocoder Nominatim/OpenStreetMap, global, sin API key). Click en un resultado vuela hasta él.</p>
         </div>
         <div class="feature">
-          <div class="feature-h">💬 Popups</div>
+          <div class="feature-h"><svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Popups</div>
           <p>Click sobre cada feature muestra sus propiedades. Eliges qué campos mostrar por capa. Las URLs en los valores son clicables automáticamente.</p>
         </div>
         <div class="feature">
-          <div class="feature-h">🔵 Cluster automático</div>
+          <div class="feature-h"><svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="3"/><circle cx="17" cy="9" r="2"/><circle cx="7" cy="17" r="2"/><circle cx="16" cy="16" r="3"/></svg> Cluster automático</div>
           <p>Capas con más de 100 puntos se agrupan en clusters al alejar el zoom (verde / naranja / rojo según tamaño). Se desactiva editando <code>config.json</code>.</p>
         </div>
         <div class="feature">
-          <div class="feature-h">⛶ Controles</div>
+          <div class="feature-h"><svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg> Controles</div>
           <p>Selector de capas (basemap + overlays), escala en km, botón pantalla completa, controles de zoom — todos en dark theme.</p>
         </div>
         <div class="feature">
-          <div class="feature-h">📦 Formatos de salida</div>
+          <div class="feature-h"><svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> Formatos de salida</div>
           <p><strong>.html</strong>: un solo archivo autocontenido (doble click y abre). <strong>.zip</strong>: carpeta con <code>index.html</code> + <code>config.json</code> + <code>data/</code> + <code>style.css</code> + <code>README.md</code> editables.</p>
         </div>
         <div class="feature">
-          <div class="feature-h">🚀 Publicación</div>
+          <div class="feature-h"><svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> Publicación</div>
           <p>El README incluye paso a paso para subir <strong>gratis</strong> a GitHub Pages o Netlify (drag &amp; drop). Sin cuenta de developer requerida.</p>
         </div>
         <div class="feature">
-          <div class="feature-h">💾 Autosave</div>
+          <div class="feature-h"><svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Autosave</div>
           <p>Tu sesión (capas + configuración) se guarda automáticamente en este navegador. Si refrescas o cierras la pestaña, lo recuperas al volver.</p>
         </div>
         <div class="feature">
-          <div class="feature-h">🔒 Privacidad</div>
+          <div class="feature-h"><svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Privacidad</div>
           <p>100% client-side. Tus datos no se suben a ningún servidor, no hay tracking ni cookies. El kit generado tampoco — solo carga Leaflet desde CDN.</p>
         </div>
       </div>
@@ -243,6 +243,12 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   .feature .feature-h {
     font-size: 12.5px; font-weight: 600; color: var(--t1);
     margin-bottom: 0.25rem;
+    display: flex; align-items: center; gap: 0.45rem;
+  }
+  .feature-icon {
+    width: 16px; height: 16px;
+    color: var(--verde);
+    flex-shrink: 0;
   }
   .feature p {
     font-size: 11.5px; color: var(--t2);
