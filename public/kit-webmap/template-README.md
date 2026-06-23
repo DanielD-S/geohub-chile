@@ -115,11 +115,28 @@ Edita `style.css` — las variables CSS al inicio (`--verde`, `--surface`, `--t1
 
 ## 🧩 Controles del mapa
 
-- **Zoom** (arriba derecha): + / − / fullscreen.
-- **Selector de capas** (ícono ◈ arriba derecha): cambia basemap y muestra/oculta capas.
-- **Leyenda** (abajo izquierda): muestra colores y categorías. Se puede colapsar con el botón `−`.
+- **Buscador de direcciones** (arriba izquierda): busca por nombre, dirección o lugar (Nominatim/OpenStreetMap, global). Click en un resultado vuela hasta él.
+- **Zoom + Fullscreen** (arriba derecha): + / − / pantalla completa.
+- **Selector de capas** (ícono ◈ arriba derecha): cambia basemap y muestra/oculta capas completas.
+- **Leyenda interactiva** (abajo izquierda): muestra colores y categorías. En capas con simbología por categoría, **cada entrada tiene un checkbox** que filtra esos features sin recargar.
 - **Escala** (abajo izquierda): en kilómetros.
-- **Popup**: click sobre una geometría muestra sus propiedades; las URLs son clicables.
+- **Popup**: click sobre una geometría muestra sus propiedades (configurable vía `popupCampos`); las URLs son clicables.
+
+### Limitar campos en el popup
+
+Por defecto el popup muestra todas las propiedades del feature. Para mostrar solo algunas, agrega `popupCampos` a la capa en `config.json`:
+
+```json
+{
+  "nombre": "Estaciones",
+  "color": "#2cd4e0",
+  "simbologia": { "modo": "unico" },
+  "popupCampos": ["nombre", "tipo", "fecha"],
+  "archivo": "data/capa-0.geojson"
+}
+```
+
+Si omites `popupCampos` (o lo dejas como un arreglo vacío), el popup vuelve al modo "todos los campos".
 
 ---
 

@@ -37,7 +37,6 @@ html, body { margin: 0; padding: 0; height: 100%; background: var(--void); color
 }
 .kw-error code { background: rgba(0,0,0,0.3); padding: 1px 4px; border-radius: 3px; font-size: 11.5px; }
 
-/* ─── Popups ─── */
 .leaflet-popup-content-wrapper {
   background: #131920 !important; color: #e8f0fe !important;
   border: 1px solid #2d4155 !important; border-radius: 6px !important;
@@ -59,7 +58,6 @@ html, body { margin: 0; padding: 0; height: 100%; background: var(--void); color
 }
 .leaflet-container a.leaflet-popup-close-button:hover { color: #e8f0fe !important; background: transparent !important; }
 
-/* ─── Controles ─── */
 .leaflet-control-zoom a, .leaflet-bar a {
   background: #131920 !important; color: #e8f0fe !important;
   border: 1px solid #21303f !important;
@@ -95,7 +93,6 @@ html, body { margin: 0; padding: 0; height: 100%; background: var(--void); color
 }
 .leaflet-control-layers-separator { border-top: 1px solid #21303f !important; margin: 6px 0 !important; }
 
-/* ─── Leyenda ─── */
 .leaflet-control-legend {
   background: rgba(13,17,23,0.94) !important;
   color: #e8f0fe !important;
@@ -103,12 +100,12 @@ html, body { margin: 0; padding: 0; height: 100%; background: var(--void); color
   border-radius: 6px !important;
   box-shadow: 0 4px 14px rgba(0,0,0,0.5) !important;
   padding: 8px 12px;
-  max-width: 240px;
+  max-width: 260px;
   font-family: ui-monospace, monospace; font-size: 11.5px;
   line-height: 1.5;
 }
 .legend-title {
-  font-family: var(--sans); font-size: 11px; font-weight: 600;
+  font-family: system-ui, sans-serif; font-size: 11px; font-weight: 600;
   text-transform: uppercase; letter-spacing: 1px;
   color: #8fa3bf; margin-bottom: 6px;
   padding-bottom: 4px; border-bottom: 1px solid #21303f;
@@ -124,7 +121,16 @@ html, body { margin: 0; padding: 0; height: 100%; background: var(--void); color
 .legend-capa { margin-bottom: 8px; }
 .legend-capa:last-child { margin-bottom: 0; }
 .legend-capa-name { color: #e8f0fe; font-weight: 500; margin-bottom: 3px; }
-.legend-entry { display: flex; align-items: center; gap: 6px; padding: 1px 0; color: #8fa3bf; }
+.legend-entry { display: flex; align-items: center; gap: 6px; padding: 1px 0; color: #8fa3bf; cursor: default; }
+.legend-entry.filterable { cursor: pointer; user-select: none; }
+.legend-entry.filterable:hover { color: #e8f0fe; }
+.legend-entry.hidden { opacity: 0.4; text-decoration: line-through; }
+.legend-entry input[type=checkbox] {
+  width: 12px; height: 12px;
+  accent-color: #3dd68c;
+  margin: 0; cursor: pointer;
+  flex-shrink: 0;
+}
 .legend-swatch {
   display: inline-block; width: 12px; height: 12px;
   border-radius: 2px; border: 1px solid rgba(255,255,255,0.15);
@@ -132,7 +138,6 @@ html, body { margin: 0; padding: 0; height: 100%; background: var(--void); color
 }
 .legend-swatch.point { border-radius: 50%; }
 
-/* ─── Botón fullscreen ─── */
 .kw-fs-btn {
   width: 30px; height: 30px;
   background: #131920; color: #e8f0fe;
@@ -143,3 +148,42 @@ html, body { margin: 0; padding: 0; height: 100%; background: var(--void); color
 }
 .kw-fs-btn:hover { background: #1a2230; color: #3dd68c; border-color: #239960; }
 .kw-fs-btn svg { width: 16px; height: 16px; }
+
+/* Geocoder */
+.kw-geocoder {
+  background: rgba(19,25,32,0.94) !important;
+  border: 1px solid #2d4155 !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.5) !important;
+  padding: 4px;
+  min-width: 240px;
+  max-width: 320px;
+}
+.kw-geocoder-row { display: flex; gap: 4px; }
+.kw-geocoder input {
+  flex: 1; min-width: 0;
+  background: transparent; border: none; outline: none;
+  color: #e8f0fe; font-family: system-ui, sans-serif; font-size: 13px;
+  padding: 4px 8px;
+}
+.kw-geocoder input::placeholder { color: #4a6580; }
+.kw-geocoder button {
+  background: #1a2230; color: #e8f0fe;
+  border: 1px solid #21303f; border-radius: 4px;
+  padding: 0 10px; font-size: 12px; cursor: pointer;
+}
+.kw-geocoder button:hover { background: #2d4155; color: #3dd68c; }
+.kw-geocoder-results {
+  margin-top: 4px;
+  border-top: 1px solid #21303f;
+  max-height: 240px; overflow-y: auto;
+}
+.kw-geocoder-results:empty { display: none; }
+.kw-geo-item {
+  padding: 6px 8px; cursor: pointer;
+  color: #8fa3bf; font-size: 12px; line-height: 1.4;
+  border-radius: 3px;
+}
+.kw-geo-item:hover { background: #1a2230; color: #e8f0fe; }
+.kw-geo-item-name { color: #e8f0fe; font-weight: 500; }
+.kw-geo-empty { padding: 6px 8px; color: #4a6580; font-size: 11.5px; font-style: italic; }

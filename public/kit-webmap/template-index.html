@@ -44,7 +44,6 @@
     }
     .kw-error code { background: rgba(0,0,0,0.3); padding: 1px 4px; border-radius: 3px; font-size: 11.5px; }
 
-    /* ─── Popups ─── */
     .leaflet-popup-content-wrapper {
       background: #131920 !important; color: #e8f0fe !important;
       border: 1px solid #2d4155 !important; border-radius: 6px !important;
@@ -66,7 +65,6 @@
     }
     .leaflet-container a.leaflet-popup-close-button:hover { color: #e8f0fe !important; background: transparent !important; }
 
-    /* ─── Controles Leaflet ─── */
     .leaflet-control-zoom a, .leaflet-bar a {
       background: #131920 !important; color: #e8f0fe !important;
       border: 1px solid #21303f !important;
@@ -102,7 +100,6 @@
     }
     .leaflet-control-layers-separator { border-top: 1px solid #21303f !important; margin: 6px 0 !important; }
 
-    /* ─── Leyenda ─── */
     .leaflet-control-legend {
       background: rgba(13,17,23,0.94) !important;
       color: #e8f0fe !important;
@@ -110,12 +107,12 @@
       border-radius: 6px !important;
       box-shadow: 0 4px 14px rgba(0,0,0,0.5) !important;
       padding: 8px 12px;
-      max-width: 240px;
+      max-width: 260px;
       font-family: ui-monospace, monospace; font-size: 11.5px;
       line-height: 1.5;
     }
     .legend-title {
-      font-family: var(--sans); font-size: 11px; font-weight: 600;
+      font-family: system-ui, sans-serif; font-size: 11px; font-weight: 600;
       text-transform: uppercase; letter-spacing: 1px;
       color: #8fa3bf; margin-bottom: 6px;
       padding-bottom: 4px; border-bottom: 1px solid #21303f;
@@ -131,7 +128,16 @@
     .legend-capa { margin-bottom: 8px; }
     .legend-capa:last-child { margin-bottom: 0; }
     .legend-capa-name { color: #e8f0fe; font-weight: 500; margin-bottom: 3px; }
-    .legend-entry { display: flex; align-items: center; gap: 6px; padding: 1px 0; color: #8fa3bf; }
+    .legend-entry { display: flex; align-items: center; gap: 6px; padding: 1px 0; color: #8fa3bf; cursor: default; }
+    .legend-entry.filterable { cursor: pointer; user-select: none; }
+    .legend-entry.filterable:hover { color: #e8f0fe; }
+    .legend-entry.hidden { opacity: 0.4; text-decoration: line-through; }
+    .legend-entry input[type=checkbox] {
+      width: 12px; height: 12px;
+      accent-color: #3dd68c;
+      margin: 0; cursor: pointer;
+      flex-shrink: 0;
+    }
     .legend-swatch {
       display: inline-block; width: 12px; height: 12px;
       border-radius: 2px; border: 1px solid rgba(255,255,255,0.15);
@@ -139,7 +145,6 @@
     }
     .legend-swatch.point { border-radius: 50%; }
 
-    /* ─── Botón fullscreen ─── */
     .kw-fs-btn {
       width: 30px; height: 30px;
       background: #131920; color: #e8f0fe;
@@ -150,6 +155,45 @@
     }
     .kw-fs-btn:hover { background: #1a2230; color: #3dd68c; border-color: #239960; }
     .kw-fs-btn svg { width: 16px; height: 16px; }
+
+    /* ─── Geocoder ─── */
+    .kw-geocoder {
+      background: rgba(19,25,32,0.94) !important;
+      border: 1px solid #2d4155 !important;
+      border-radius: 6px !important;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.5) !important;
+      padding: 4px;
+      min-width: 240px;
+      max-width: 320px;
+    }
+    .kw-geocoder-row { display: flex; gap: 4px; }
+    .kw-geocoder input {
+      flex: 1; min-width: 0;
+      background: transparent; border: none; outline: none;
+      color: #e8f0fe; font-family: system-ui, sans-serif; font-size: 13px;
+      padding: 4px 8px;
+    }
+    .kw-geocoder input::placeholder { color: #4a6580; }
+    .kw-geocoder button {
+      background: #1a2230; color: #e8f0fe;
+      border: 1px solid #21303f; border-radius: 4px;
+      padding: 0 10px; font-size: 12px; cursor: pointer;
+    }
+    .kw-geocoder button:hover { background: #2d4155; color: #3dd68c; }
+    .kw-geocoder-results {
+      margin-top: 4px;
+      border-top: 1px solid #21303f;
+      max-height: 240px; overflow-y: auto;
+    }
+    .kw-geocoder-results:empty { display: none; }
+    .kw-geo-item {
+      padding: 6px 8px; cursor: pointer;
+      color: #8fa3bf; font-size: 12px; line-height: 1.4;
+      border-radius: 3px;
+    }
+    .kw-geo-item:hover { background: #1a2230; color: #e8f0fe; }
+    .kw-geo-item-name { color: #e8f0fe; font-weight: 500; }
+    .kw-geo-empty { padding: 6px 8px; color: #4a6580; font-size: 11.5px; font-style: italic; }
   </style>
 </head>
 <body>
@@ -159,7 +203,6 @@
   </div>
   <div id="map"><div class="kw-loading">Cargando mapa…</div></div>
 
-  <!-- Config (titulo, basemap, capas con metadatos + datos inline en modo HTML autocontenido). -->
   <script id="kit-config" type="application/json">{{KIT_CONFIG}}</script>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -179,8 +222,11 @@
         });
       }
 
-      function popupHtml(props) {
-        var entries = Object.entries(props || {}).filter(function (e) { return !String(e[0]).startsWith('__'); });
+      function popupHtml(capa, props) {
+        var allEntries = Object.entries(props || {}).filter(function (e) { return !String(e[0]).startsWith('__'); });
+        var entries = capa.popupCampos && capa.popupCampos.length > 0
+          ? allEntries.filter(function (e) { return capa.popupCampos.indexOf(e[0]) >= 0; })
+          : allEntries;
         if (entries.length === 0) return '<div style="color:#8fa3bf;font-style:italic">(sin propiedades)</div>';
         var max = 14;
         var filas = entries.slice(0, max).map(function (e) {
@@ -221,20 +267,100 @@
         document.body.appendChild(div);
       }
 
-      function construirLeyenda(capas) {
+      function buildLayerForFeature(capa, feat, latlng) {
+        var c = colorDeFeature(capa, feat);
+        var POPUP_OPTS = { maxWidth: 360, minWidth: 220, autoPanPadding: [40, 40] };
+        var lyr;
+        if (latlng) {
+          capa._tienePuntos = true;
+          lyr = L.circleMarker(latlng, { radius: 6, color: c, weight: 2, fillColor: c, fillOpacity: 0.7 });
+        } else {
+          lyr = L.geoJSON(feat, { style: { color: c, weight: 2, fillColor: c, fillOpacity: 0.18 } });
+        }
+        lyr.bindPopup(popupHtml(capa, feat.properties), POPUP_OPTS);
+        return lyr;
+      }
+
+      // Para capas categóricas: crea un subgrupo por categoría, agrupa los features en el correspondiente
+      function construirCapa(capa) {
+        var sim = capa.simbologia || { modo: 'unico' };
+        var grupo = L.featureGroup();
+        capa._gruposPorCategoria = null;
+        capa._tienePuntos = false;
+        capa._tieneOtros = false;
+
+        var feats = (capa.datos && capa.datos.features) || [];
+
+        if (sim.modo === 'categorico' && sim.campo && sim.paleta) {
+          var subs = {};
+          // entradas conocidas
+          Object.keys(sim.paleta).forEach(function (k) { subs[k] = L.featureGroup(); });
+          subs.__otros__ = L.featureGroup();
+          var hayOtros = false;
+          feats.forEach(function (feat) {
+            var val = String(feat.properties == null ? '' : (feat.properties[sim.campo] == null ? '' : feat.properties[sim.campo]));
+            var key = (val in sim.paleta) ? val : '__otros__';
+            if (key === '__otros__') hayOtros = true;
+            var sub = subs[key];
+            if (feat.geometry && (feat.geometry.type === 'Point' || feat.geometry.type === 'MultiPoint')) {
+              var coords = feat.geometry.type === 'Point' ? [feat.geometry.coordinates] : feat.geometry.coordinates;
+              coords.forEach(function (xy) {
+                buildLayerForFeature(capa, feat, L.latLng(xy[1], xy[0])).addTo(sub);
+              });
+            } else {
+              buildLayerForFeature(capa, feat, null).addTo(sub);
+            }
+          });
+          capa._tieneOtros = hayOtros;
+          Object.keys(subs).forEach(function (k) {
+            if (k === '__otros__' && !hayOtros) return;
+            subs[k].addTo(grupo);
+          });
+          capa._gruposPorCategoria = subs;
+        } else {
+          var lyrAll = L.geoJSON(capa.datos, {
+            style: function (feat) {
+              var c = colorDeFeature(capa, feat);
+              return { color: c, weight: 2, fillColor: c, fillOpacity: 0.18 };
+            },
+            pointToLayer: function (feat, latlng) {
+              capa._tienePuntos = true;
+              var c = colorDeFeature(capa, feat);
+              return L.circleMarker(latlng, { radius: 6, color: c, weight: 2, fillColor: c, fillOpacity: 0.7 });
+            },
+            onEachFeature: function (feat, l) { l.bindPopup(popupHtml(capa, feat.properties), { maxWidth: 360, minWidth: 220, autoPanPadding: [40, 40] }); },
+          });
+          lyrAll.addTo(grupo);
+        }
+        capa._lyr = grupo;
+        return grupo;
+      }
+
+      function construirLeyenda(capas, map) {
         var partes = ['<div class="legend-title">Leyenda <button class="legend-toggle" type="button" title="Colapsar">−</button></div><div class="legend-body">'];
-        capas.forEach(function (c) {
+        capas.forEach(function (c, idx) {
           var sim = c.simbologia || { modo: 'unico' };
           var nombre = escapar(c.nombre || 'Capa');
           var swatchClass = c._tienePuntos ? 'legend-swatch point' : 'legend-swatch';
-          partes.push('<div class="legend-capa"><div class="legend-capa-name">' + nombre + '</div>');
+          partes.push('<div class="legend-capa" data-capa="' + idx + '"><div class="legend-capa-name">' + nombre + '</div>');
           if (sim.modo === 'categorico' && sim.paleta) {
-            var keys = Object.keys(sim.paleta);
-            keys.forEach(function (k) {
-              partes.push('<div class="legend-entry"><span class="' + swatchClass + '" style="background:' + escapar(sim.paleta[k]) + '"></span>' + escapar(k || '(vacío)') + '</div>');
+            Object.keys(sim.paleta).forEach(function (k) {
+              partes.push(
+                '<label class="legend-entry filterable" data-cat="' + escapar(k) + '">' +
+                  '<input type="checkbox" checked />' +
+                  '<span class="' + swatchClass + '" style="background:' + escapar(sim.paleta[k]) + '"></span>' +
+                  '<span>' + escapar(k || '(vacío)') + '</span>' +
+                '</label>'
+              );
             });
             if (c._tieneOtros) {
-              partes.push('<div class="legend-entry"><span class="' + swatchClass + '" style="background:#7a8a9a"></span><span style="color:#4a6580">Otros</span></div>');
+              partes.push(
+                '<label class="legend-entry filterable" data-cat="__otros__">' +
+                  '<input type="checkbox" checked />' +
+                  '<span class="' + swatchClass + '" style="background:#7a8a9a"></span>' +
+                  '<span style="color:#4a6580">Otros</span>' +
+                '</label>'
+              );
             }
           } else {
             partes.push('<div class="legend-entry"><span class="' + swatchClass + '" style="background:' + escapar(c.color || '#2cd4e0') + '"></span>Todos</div>');
@@ -250,7 +376,7 @@
         var ctrl = L.control({ position: 'bottomleft' });
         ctrl.onAdd = function () {
           var div = L.DomUtil.create('div', 'leaflet-control-legend');
-          div.innerHTML = construirLeyenda(capas);
+          div.innerHTML = construirLeyenda(capas, map);
           L.DomEvent.disableClickPropagation(div);
           L.DomEvent.disableScrollPropagation(div);
           var btn = div.querySelector('.legend-toggle');
@@ -258,6 +384,22 @@
             div.classList.toggle('legend-collapsed');
             btn.textContent = div.classList.contains('legend-collapsed') ? '+' : '−';
             btn.title = div.classList.contains('legend-collapsed') ? 'Expandir' : 'Colapsar';
+          });
+          // Filtros por categoría
+          div.addEventListener('change', function (e) {
+            var t = e.target;
+            if (t.tagName !== 'INPUT' || t.type !== 'checkbox') return;
+            var entry = t.closest('.legend-entry');
+            var capaEl = t.closest('.legend-capa');
+            if (!entry || !capaEl) return;
+            var idx = parseInt(capaEl.getAttribute('data-capa'), 10);
+            var cat = entry.getAttribute('data-cat');
+            var capa = capas[idx];
+            if (!capa || !capa._gruposPorCategoria) return;
+            var sub = capa._gruposPorCategoria[cat];
+            if (!sub) return;
+            if (t.checked) { sub.addTo(capa._lyr); entry.classList.remove('hidden'); }
+            else { sub.remove(); entry.classList.add('hidden'); }
           });
           return div;
         };
@@ -283,32 +425,66 @@
         ctrl.addTo(map);
       }
 
-      function pintarCapa(capa, map) {
-        var POPUP_OPTS = { maxWidth: 360, minWidth: 220, autoPanPadding: [40, 40] };
-        var tienePuntos = false;
-        var tieneOtros = false;
-        var sim = capa.simbologia || { modo: 'unico' };
-
-        var lyr = L.geoJSON(capa.datos, {
-          style: function (feat) {
-            var c = colorDeFeature(capa, feat);
-            if (sim.modo === 'categorico' && sim.campo && sim.paleta) {
-              var val = String(feat.properties == null ? '' : (feat.properties[sim.campo] == null ? '' : feat.properties[sim.campo]));
-              if (!(val in sim.paleta)) tieneOtros = true;
+      function agregarGeocoder(map) {
+        var ctrl = L.control({ position: 'topleft' });
+        ctrl.onAdd = function () {
+          var div = L.DomUtil.create('div', 'leaflet-control kw-geocoder');
+          div.innerHTML =
+            '<div class="kw-geocoder-row">' +
+              '<input type="text" placeholder="Buscar dirección o lugar…" autocomplete="off" />' +
+              '<button type="button" title="Buscar">↵</button>' +
+            '</div>' +
+            '<div class="kw-geocoder-results"></div>';
+          L.DomEvent.disableClickPropagation(div);
+          L.DomEvent.disableScrollPropagation(div);
+          var input = div.querySelector('input');
+          var btn = div.querySelector('button');
+          var resBox = div.querySelector('.kw-geocoder-results');
+          var marcador = null;
+          function buscar() {
+            var q = (input.value || '').trim();
+            if (q.length < 3) {
+              resBox.innerHTML = '<div class="kw-geo-empty">Escribe al menos 3 caracteres.</div>';
+              return;
             }
-            return { color: c, weight: 2, fillColor: c, fillOpacity: 0.18 };
-          },
-          pointToLayer: function (feat, latlng) {
-            tienePuntos = true;
-            var c = colorDeFeature(capa, feat);
-            return L.circleMarker(latlng, { radius: 6, color: c, weight: 2, fillColor: c, fillOpacity: 0.7 });
-          },
-          onEachFeature: function (feat, l) { l.bindPopup(popupHtml(feat.properties), POPUP_OPTS); },
-        });
-        capa._tienePuntos = tienePuntos;
-        capa._tieneOtros = tieneOtros;
-        capa._lyr = lyr;
-        return lyr;
+            resBox.innerHTML = '<div class="kw-geo-empty">Buscando…</div>';
+            var url = 'https://nominatim.openstreetmap.org/search?format=json&limit=5&q=' + encodeURIComponent(q);
+            fetch(url, { headers: { 'Accept-Language': 'es' } })
+              .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+              .then(function (results) {
+                if (!results || results.length === 0) {
+                  resBox.innerHTML = '<div class="kw-geo-empty">Sin resultados.</div>';
+                  return;
+                }
+                resBox.innerHTML = results.map(function (r) {
+                  return '<div class="kw-geo-item" data-lat="' + r.lat + '" data-lon="' + r.lon + '">' +
+                    '<div class="kw-geo-item-name">' + escapar((r.display_name || '').split(',')[0]) + '</div>' +
+                    '<div>' + escapar(r.display_name || '') + '</div>' +
+                  '</div>';
+                }).join('');
+              })
+              .catch(function (e) {
+                resBox.innerHTML = '<div class="kw-geo-empty">Error: ' + escapar(e.message || e) + '</div>';
+              });
+          }
+          btn.addEventListener('click', buscar);
+          input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); buscar(); } });
+          resBox.addEventListener('click', function (e) {
+            var item = e.target.closest('.kw-geo-item');
+            if (!item) return;
+            var lat = parseFloat(item.getAttribute('data-lat'));
+            var lon = parseFloat(item.getAttribute('data-lon'));
+            if (isNaN(lat) || isNaN(lon)) return;
+            map.flyTo([lat, lon], 14, { duration: 0.8 });
+            if (marcador) marcador.remove();
+            marcador = L.circleMarker([lat, lon], { radius: 10, color: '#3dd68c', weight: 3, fillColor: '#3dd68c', fillOpacity: 0.4 }).addTo(map);
+            setTimeout(function () { if (marcador) { marcador.remove(); marcador = null; } }, 8000);
+            resBox.innerHTML = '';
+            input.value = item.querySelector('.kw-geo-item-name').textContent;
+          });
+          return div;
+        };
+        ctrl.addTo(map);
       }
 
       async function cargarDatosCapa(capa) {
@@ -329,8 +505,8 @@
         L.control.zoom({ position: 'topright' }).addTo(map);
         agregarFullscreen(map);
         L.control.scale({ metric: true, imperial: false, position: 'bottomleft', maxWidth: 160 }).addTo(map);
+        agregarGeocoder(map);
 
-        // Basemaps: registrar todos en layer control, activar el inicial
         var inicial = BASEMAPS[config.basemap] || BASEMAPS['carto-dark'];
         var baseTiles = {};
         Object.keys(BASEMAPS).forEach(function (key) {
@@ -339,14 +515,13 @@
         });
         baseTiles[inicial.label].addTo(map);
 
-        // Capas
         var overlays = {};
         var allBounds = L.latLngBounds([]);
         (config.capas || []).forEach(function (capa) {
-          var lyr = pintarCapa(capa, map);
-          lyr.addTo(map);
-          overlays[capa.nombre || 'Capa'] = lyr;
-          var b = lyr.getBounds();
+          var grupo = construirCapa(capa);
+          grupo.addTo(map);
+          overlays[capa.nombre || 'Capa'] = grupo;
+          var b = grupo.getBounds();
           if (b.isValid()) allBounds.extend(b);
         });
 
@@ -366,7 +541,6 @@
           try { config = JSON.parse(raw); }
           catch (e) { throw new Error('La configuración embebida no es JSON válido: ' + e.message); }
         } else {
-          // Modo ZIP: leer config.json externo
           try {
             var res = await fetch('./config.json');
             if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -379,7 +553,6 @@
             );
           }
         }
-        // Resolver datos por capa si no vienen inline
         var capas = config.capas || [];
         await Promise.all(capas.map(async function (capa) {
           if (!capa.datos) capa.datos = await cargarDatosCapa(capa);

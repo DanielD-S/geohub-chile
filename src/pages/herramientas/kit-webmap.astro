@@ -49,6 +49,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       </div>
     </label>
 
+    <div id="session-banner"></div>
     <div id="status" class="status"></div>
 
     <!-- Resto del builder visible cuando hay al menos 1 capa -->
@@ -75,9 +76,12 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       </div>
 
       <div class="config-card">
-        <div class="config-step"><strong>3.</strong> Capas (<span id="r-num-capas">0</span>)</div>
+        <div class="config-step-row">
+          <div class="config-step"><strong>3.</strong> Capas (<span id="r-num-capas">0</span>)</div>
+          <button id="btn-limpiar" class="btn-link" type="button" title="Borra todo (capas, título, basemap) y elimina la sesión guardada">↺ Limpiar sesión</button>
+        </div>
         <div id="capas-list" class="capas-list"></div>
-        <p class="capa-hint">↑ Arrastra otro archivo al dropzone de arriba para agregar más capas.</p>
+        <p class="capa-hint">↑ Arrastra otro archivo al dropzone de arriba para agregar más capas. Tu sesión se guarda automáticamente en este navegador.</p>
       </div>
 
       <div id="mapa-canvas" class="mapa-tool"></div>
@@ -286,6 +290,87 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   .pal-chip-lbl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   .capa-hint { font-size: 11.5px; color: var(--t3); margin-top: 0.6rem; font-style: italic; }
+
+  .config-step-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 0.5rem; margin-bottom: 0.85rem;
+  }
+  .config-step-row .config-step { margin-bottom: 0; }
+  .btn-link {
+    background: transparent; border: 1px solid var(--border);
+    color: var(--t3); font-size: 11.5px;
+    padding: 4px 10px; border-radius: 5px;
+    cursor: pointer; transition: all 0.15s;
+    font-family: var(--mono);
+  }
+  .btn-link:hover { color: var(--t1); border-color: var(--border2); background: var(--surface2); }
+
+  /* Popup fields editor */
+  .capa-popup-fields {
+    grid-column: 1 / -1;
+    margin-top: 0.5rem;
+    padding-top: 0.6rem;
+    border-top: 1px dashed var(--border);
+  }
+  .capa-popup-fields > summary {
+    cursor: pointer;
+    font-family: var(--mono); font-size: 10.5px;
+    text-transform: uppercase; letter-spacing: 1px;
+    color: var(--t3); user-select: none;
+    list-style: none;
+  }
+  .capa-popup-fields > summary::-webkit-details-marker { display: none; }
+  .capa-popup-fields > summary:hover { color: var(--verde); }
+  .capa-popup-fields > summary::before { content: '▸ '; color: var(--t3); }
+  .capa-popup-fields[open] > summary::before { content: '▾ '; color: var(--verde); }
+  .capa-popup-actions {
+    display: flex; gap: 0.4rem; margin-top: 0.5rem;
+  }
+  .capa-popup-actions button {
+    background: transparent; border: 1px solid var(--border);
+    color: var(--t3); font-size: 11px;
+    padding: 2px 8px; border-radius: 4px;
+    cursor: pointer; font-family: var(--mono);
+  }
+  .capa-popup-actions button:hover { color: var(--verde); border-color: var(--verde-dim); }
+  .capa-popup-list {
+    margin-top: 0.4rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 3px 8px;
+    max-height: 180px; overflow-y: auto;
+    padding-right: 4px;
+  }
+  .capa-popup-item {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11.5px; color: var(--t2);
+    font-family: var(--mono);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .capa-popup-item input[type=checkbox] {
+    width: 11px; height: 11px;
+    accent-color: var(--verde);
+    margin: 0; flex-shrink: 0;
+  }
+
+  .session-banner {
+    background: rgba(61,214,140,0.08);
+    border: 1px solid var(--verde-dim);
+    border-left: 3px solid var(--verde);
+    color: var(--t1);
+    padding: 0.6rem 0.9rem;
+    border-radius: var(--r);
+    font-size: 12.5px;
+    margin-bottom: 1rem;
+    display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;
+  }
+  .session-banner button {
+    background: transparent; border: 1px solid var(--verde-dim);
+    color: var(--verde); font-size: 11px;
+    padding: 3px 10px; border-radius: 4px;
+    cursor: pointer; font-family: var(--mono);
+  }
+  .session-banner button:hover { background: var(--verde-glow); }
 
   .mapa-tool {
     height: 520px;
@@ -557,8 +642,11 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       );
     }
 
-    function popupHtml(props) {
-      const entries = Object.entries(props || {}).filter(([k]) => !String(k).startsWith('__'));
+    function popupHtml(capa, props) {
+      const all = Object.entries(props || {}).filter(([k]) => !String(k).startsWith('__'));
+      const entries = (capa?.popupCampos && capa.popupCampos.length > 0)
+        ? all.filter(([k]) => capa.popupCampos.includes(k))
+        : all;
       if (entries.length === 0) return '<div style="color:#8fa3bf;font-style:italic">(sin propiedades)</div>';
       const filas = entries.slice(0, 14).map(([k, v]) => {
         const valStr = String(v ?? '');
@@ -637,7 +725,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
           const c = colorDeFeature(capa, feat);
           return L.circleMarker(latlng, { radius: 6, color: c, weight: 2, fillColor: c, fillOpacity: 0.7 });
         },
-        onEachFeature: (feat, l) => l.bindPopup(popupHtml(feat.properties), POPUP_OPTS),
+        onEachFeature: (feat, l) => l.bindPopup(popupHtml(capa, feat.properties), POPUP_OPTS),
       }).addTo(map);
       lyrPorCapa.set(capa.id, lyr);
     }
@@ -663,6 +751,22 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       const camposOpts = capa.campos.map(c =>
         `<option value="${escapar(c)}" ${sim.campo === c ? 'selected' : ''}>${escapar(c)}</option>`
       ).join('');
+      const popupSel = capa.popupCampos; // null = todos
+      const popupSelSet = new Set(popupSel || capa.campos);
+      const popupCount = popupSel ? popupSel.length : capa.campos.length;
+      const popupItems = capa.campos.map(c =>
+        `<label class="capa-popup-item" title="${escapar(c)}"><input type="checkbox" data-action="popup-campo" data-id="${capa.id}" data-campo="${escapar(c)}" ${popupSelSet.has(c) ? 'checked' : ''} />${escapar(c)}</label>`
+      ).join('');
+      const popupHtmlBlock = capa.campos.length === 0
+        ? ''
+        : `<details class="capa-popup-fields">
+             <summary>Campos en popup (${popupCount}/${capa.campos.length})</summary>
+             <div class="capa-popup-actions">
+               <button type="button" data-action="popup-todos" data-id="${capa.id}">Todos</button>
+               <button type="button" data-action="popup-ninguno" data-id="${capa.id}">Ninguno</button>
+             </div>
+             <div class="capa-popup-list">${popupItems}</div>
+           </details>`;
       const paletaHtml = (sim.modo === 'categorico' && sim.paleta)
         ? `<div class="capa-palette">
              <div class="capa-palette-lbl">Paleta (${Object.keys(sim.paleta).length} categorías)</div>
@@ -704,6 +808,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
               </select>
             </label>
             ${paletaHtml}
+            ${popupHtmlBlock}
           </div>
         </div>`;
     }
@@ -716,8 +821,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       if (!id || !action) return;
       const capa = state.capas.find(c => c.id === id);
       if (!capa) return;
-      if (action === 'nombre') { capa.nombre = t.value; return; }
-      if (action === 'color') { capa.color = t.value; pintarCapaEnPreview(capa); renderCapas(); return; }
+      if (action === 'nombre') { capa.nombre = t.value; persist(); return; }
+      if (action === 'color') { capa.color = t.value; pintarCapaEnPreview(capa); renderCapas(); persist(); return; }
     });
     capasList.addEventListener('change', e => {
       const t = e.target;
@@ -732,21 +837,41 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
           capa.simbologia.campo = capa.campos[0];
           generarPaleta(capa);
         }
-        pintarCapaEnPreview(capa);
-        renderCapas();
+        pintarCapaEnPreview(capa); renderCapas(); persist();
         return;
       }
       if (action === 'campo') {
         capa.simbologia.campo = t.value || null;
         if (capa.simbologia.campo) generarPaleta(capa);
         else delete capa.simbologia.paleta;
-        pintarCapaEnPreview(capa);
-        renderCapas();
+        pintarCapaEnPreview(capa); renderCapas(); persist();
+        return;
+      }
+      if (action === 'popup-campo') {
+        const campo = t.dataset.campo;
+        const current = new Set(capa.popupCampos || capa.campos);
+        if (t.checked) current.add(campo);
+        else current.delete(campo);
+        capa.popupCampos = Array.from(current);
+        pintarCapaEnPreview(capa); persist();
+        // Actualizar contador en el summary sin re-render completo (preserva details abierto)
+        const summary = t.closest('.capa-popup-fields')?.querySelector('summary');
+        if (summary) summary.textContent = `Campos en popup (${capa.popupCampos.length}/${capa.campos.length})`;
         return;
       }
     });
     capasList.addEventListener('click', e => {
-      const btn = e.target.closest('[data-action="eliminar"]');
+      const t = e.target;
+      const action = t.dataset?.action;
+      if (action === 'popup-todos' || action === 'popup-ninguno') {
+        const id = t.dataset.id;
+        const capa = state.capas.find(c => c.id === id);
+        if (!capa) return;
+        capa.popupCampos = action === 'popup-todos' ? capa.campos.slice() : [];
+        pintarCapaEnPreview(capa); renderCapas(); persist();
+        return;
+      }
+      const btn = t.closest('[data-action="eliminar"]');
       if (!btn) return;
       const id = btn.dataset.id;
       const i = state.capas.findIndex(c => c.id === id);
@@ -754,7 +879,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       const prev = lyrPorCapa.get(id);
       if (prev) { prev.remove(); lyrPorCapa.delete(id); }
       state.capas.splice(i, 1);
-      renderCapas();
+      renderCapas(); persist();
       if (state.capas.length === 0) {
         resultado.style.display = 'none';
         setStatus({ title: 'Sin capas. Sube un archivo para empezar.', type: '' });
@@ -784,6 +909,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
             formato,
             color: PALETA[idx % PALETA.length],
             simbologia: { modo: 'unico' },
+            popupCampos: null,
             geojson,
             campos: camposDeCapa(geojson),
           };
@@ -805,6 +931,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         asegurarMapa(); aplicarBasemap();
         state.capas.forEach(pintarCapaEnPreview);
         ajustarBoundsPreview();
+        persist();
       }
       if (errores.length > 0) {
         setStatus({
@@ -834,8 +961,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       if (files.length) manejarArchivos(files);
     });
 
-    inTitulo.addEventListener('input', () => { state.titulo = inTitulo.value; });
-    inBasemap.addEventListener('change', () => { state.basemap = inBasemap.value; aplicarBasemap(); });
+    inTitulo.addEventListener('input', () => { state.titulo = inTitulo.value; persist(); });
+    inBasemap.addEventListener('change', () => { state.basemap = inBasemap.value; aplicarBasemap(); persist(); });
 
     // ─── Construir config del kit ───
     function configParaKit({ modoExterno = false } = {}) {
@@ -848,11 +975,99 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
             color: c.color,
             simbologia: c.simbologia,
           };
+          if (c.popupCampos && c.popupCampos.length !== c.campos.length) {
+            out.popupCampos = c.popupCampos;
+          }
           if (modoExterno) out.archivo = `data/capa-${i}.geojson`;
           else out.datos = c.geojson;
           return out;
         }),
       };
+    }
+
+    // ─── Persistencia en localStorage ───
+    const STORAGE_KEY = 'geohub-kit-webmap-v1';
+    function persist() {
+      try {
+        const snap = {
+          titulo: state.titulo,
+          basemap: state.basemap,
+          _idSeq: state._idSeq,
+          capas: state.capas.map(c => ({
+            id: c.id, nombre: c.nombre, nombreArchivo: c.nombreArchivo,
+            formato: c.formato, color: c.color, simbologia: c.simbologia,
+            popupCampos: c.popupCampos, geojson: c.geojson, campos: c.campos,
+          })),
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(snap));
+      } catch (e) {
+        // Quota excedida o modo privado — guardar solo metadata sin geojson
+        try {
+          const lite = {
+            titulo: state.titulo, basemap: state.basemap, _idSeq: state._idSeq,
+            capas: state.capas.map(c => ({
+              id: c.id, nombre: c.nombre, nombreArchivo: c.nombreArchivo,
+              formato: c.formato, color: c.color, simbologia: c.simbologia,
+              popupCampos: c.popupCampos, _lite: true,
+            })),
+          };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(lite));
+        } catch {}
+      }
+    }
+    function restaurar() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return false;
+        const saved = JSON.parse(raw);
+        const conDatos = (saved.capas || []).filter(c => c.geojson && !c._lite);
+        const sinDatos = (saved.capas || []).filter(c => !c.geojson || c._lite);
+        state.titulo = saved.titulo || 'Mi mapa';
+        state.basemap = saved.basemap || 'carto-dark';
+        state._idSeq = saved._idSeq || 0;
+        state.capas = conDatos;
+        inTitulo.value = state.titulo;
+        inBasemap.value = state.basemap;
+        if (state.capas.length > 0) {
+          mostrarBannerSesion(state.capas.length, sinDatos.length);
+          return true;
+        } else if (sinDatos.length > 0) {
+          mostrarBannerSesion(0, sinDatos.length);
+        }
+        return false;
+      } catch { return false; }
+    }
+    function mostrarBannerSesion(conDatos, sinDatos) {
+      const div = document.getElementById('session-banner');
+      const total = conDatos + sinDatos;
+      const msg = sinDatos > 0
+        ? `Sesión anterior restaurada: ${conDatos} capa(s) con datos${sinDatos > 0 ? `, ${sinDatos} sin datos (el archivo era muy grande para guardar — vuelve a subirlo).` : ''}`
+        : `Sesión anterior restaurada: ${total} capa(s).`;
+      div.className = 'session-banner';
+      div.innerHTML = `<span>${escapar(msg)}</span><button type="button" id="btn-descartar-sesion">Descartar</button>`;
+      document.getElementById('btn-descartar-sesion').addEventListener('click', () => {
+        limpiarSesion();
+      });
+    }
+    function limpiarBannerSesion() {
+      const div = document.getElementById('session-banner');
+      div.className = '';
+      div.innerHTML = '';
+    }
+    function limpiarSesion() {
+      try { localStorage.removeItem(STORAGE_KEY); } catch {}
+      state.titulo = 'Mi mapa';
+      state.basemap = 'carto-dark';
+      state.capas = [];
+      state._idSeq = 0;
+      lyrPorCapa.forEach(l => l.remove());
+      lyrPorCapa.clear();
+      inTitulo.value = 'Mi mapa';
+      inBasemap.value = 'carto-dark';
+      resultado.style.display = 'none';
+      limpiarBannerSesion();
+      setStatus('');
+      renderCapas();
     }
 
     function slug(s) {
@@ -952,5 +1167,19 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
     btnHtml.addEventListener('click', descargarHTML);
     btnZip.addEventListener('click', descargarZIP);
+    document.getElementById('btn-limpiar').addEventListener('click', () => {
+      if (confirm('Borrar todas las capas y la sesión guardada. ¿Continuar?')) limpiarSesion();
+    });
+
+    // ─── Restaurar sesión al cargar ───
+    if (restaurar() && state.capas.length > 0) {
+      resultado.style.display = 'flex';
+      renderCapas();
+      requestAnimationFrame(() => {
+        asegurarMapa(); aplicarBasemap();
+        state.capas.forEach(pintarCapaEnPreview);
+        ajustarBoundsPreview();
+      });
+    }
   })();
 </script>
