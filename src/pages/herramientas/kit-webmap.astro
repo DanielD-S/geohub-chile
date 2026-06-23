@@ -85,6 +85,10 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
           <p>El README incluye paso a paso para subir <strong>gratis</strong> a GitHub Pages o Netlify (drag &amp; drop). Sin cuenta de developer requerida.</p>
         </div>
         <div class="feature">
+          <div class="feature-h"><svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> Embed iframe</div>
+          <p>Genera un snippet <code>&lt;iframe&gt;</code> para insertar el mapa en cualquier blog, CMS o landing. Personaliza ancho y alto, copia con un click.</p>
+        </div>
+        <div class="feature">
           <div class="feature-h"><svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Autosave</div>
           <p>Tu sesión (capas + configuración) se guarda automáticamente en este navegador. Si refrescas o cierras la pestaña, lo recuperas al volver.</p>
         </div>
@@ -165,6 +169,34 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
             </div>
             <button id="btn-zip" class="btn-dl">⬇ Descargar .zip</button>
           </div>
+        </div>
+      </div>
+
+      <div class="config-card">
+        <div class="config-step"><strong>5.</strong> Embeber en tu sitio (opcional)</div>
+        <p class="embed-hint">
+          Cuando tengas el kit publicado en una URL pública (GitHub Pages,
+          Netlify, tu propio dominio), puedes embeberlo en cualquier blog,
+          CMS o landing pegando este snippet. Edita la URL, ancho y alto, y
+          copia.
+        </p>
+        <div class="embed-grid">
+          <label class="field embed-url-field">
+            <span class="field-lbl">URL del mapa publicado</span>
+            <input type="url" id="in-embed-url" placeholder="https://tu-sitio.com/mi-mapa/" />
+          </label>
+          <label class="field">
+            <span class="field-lbl">Ancho</span>
+            <input type="text" id="in-embed-w" value="100%" maxlength="10" />
+          </label>
+          <label class="field">
+            <span class="field-lbl">Alto (px)</span>
+            <input type="text" id="in-embed-h" value="520" maxlength="6" />
+          </label>
+        </div>
+        <div class="embed-output">
+          <textarea id="out-embed" readonly rows="3" spellcheck="false"></textarea>
+          <button id="btn-embed-copy" class="btn-embed-copy" type="button">⎘ Copiar snippet</button>
         </div>
       </div>
     </div>
@@ -536,6 +568,45 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   }
   .btn-dl:hover { background: #5ce29c; }
   .btn-dl:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .embed-hint {
+    font-size: 12.5px; color: var(--t2); line-height: 1.6;
+    margin: 0 0 0.85rem; max-width: 80ch;
+  }
+  .embed-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+  @media (max-width: 600px) { .embed-grid { grid-template-columns: 1fr; } }
+  .embed-output {
+    position: relative;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.5rem 0.6rem 0.6rem;
+  }
+  .embed-output textarea {
+    width: 100%;
+    background: transparent;
+    border: none; outline: none; resize: vertical;
+    color: var(--verde);
+    font-family: var(--mono); font-size: 11.5px; line-height: 1.55;
+    padding: 0;
+    min-height: 60px;
+  }
+  .btn-embed-copy {
+    position: absolute; top: 8px; right: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    color: var(--t2);
+    font-family: var(--sans); font-size: 11.5px;
+    padding: 4px 10px; border-radius: 5px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .btn-embed-copy:hover { color: var(--verde); border-color: var(--verde-dim); background: var(--verde-glow); }
+  .btn-embed-copy.copied { color: var(--verde); border-color: var(--verde-dim); background: var(--verde-glow); }
 </style>
 
 <style is:global>
@@ -1485,6 +1556,43 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     document.getElementById('btn-limpiar').addEventListener('click', () => {
       if (confirm('Borrar todas las capas y la sesión guardada. ¿Continuar?')) limpiarSesion();
     });
+
+    // ─── Embed iframe ───
+    const inEmbedUrl = document.getElementById('in-embed-url');
+    const inEmbedW = document.getElementById('in-embed-w');
+    const inEmbedH = document.getElementById('in-embed-h');
+    const outEmbed = document.getElementById('out-embed');
+    const btnEmbedCopy = document.getElementById('btn-embed-copy');
+    function actualizarEmbed() {
+      const url = (inEmbedUrl.value || 'https://tu-sitio.com/mi-mapa/').trim();
+      const w = (inEmbedW.value || '100%').trim();
+      const h = (inEmbedH.value || '520').trim();
+      const titulo = state.titulo || 'Mi mapa';
+      const heightAttr = /^\d+$/.test(h) ? h : '520';
+      outEmbed.value =
+        '<iframe src="' + url + '" ' +
+        'width="' + w + '" height="' + heightAttr + '" ' +
+        'style="border:0;border-radius:8px;max-width:100%;" ' +
+        'loading="lazy" allowfullscreen ' +
+        'title="' + titulo.replace(/"/g, '&quot;') + '"></iframe>';
+    }
+    [inEmbedUrl, inEmbedW, inEmbedH].forEach(el => el.addEventListener('input', actualizarEmbed));
+    inTitulo.addEventListener('input', actualizarEmbed);
+    btnEmbedCopy.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(outEmbed.value);
+        btnEmbedCopy.textContent = '✓ Copiado';
+        btnEmbedCopy.classList.add('copied');
+        setTimeout(() => {
+          btnEmbedCopy.textContent = '⎘ Copiar snippet';
+          btnEmbedCopy.classList.remove('copied');
+        }, 2000);
+      } catch {
+        outEmbed.select();
+        document.execCommand('copy');
+      }
+    });
+    actualizarEmbed();
 
     // ─── Restaurar sesión al cargar ───
     if (restaurar() && state.capas.length > 0) {

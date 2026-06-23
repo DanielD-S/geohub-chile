@@ -14,6 +14,7 @@ Este kit contiene **{{NUM_CAPAS}} capa(s)** de datos geográficos.
 - **Popups editables**: configurables por capa (qué propiedades mostrar). URLs clicables.
 - **Cluster automático** de puntos cuando hay más de 100 (verde / naranja / rojo según tamaño).
 - **Controles**: zoom, escala en km, pantalla completa, selector de capas.
+- **Embed iframe**: instrucciones para embeber el mapa en cualquier blog/CMS con un snippet HTML.
 - **Dark theme** consistente en todo (popups, controles, leyenda).
 - **Privacidad**: sin tracking, sin cookies, sin analytics. Solo Leaflet desde CDN.
 
@@ -64,6 +65,22 @@ python -m http.server 8000
 ```
 
 Abre la URL que te dé (`http://localhost:3000` o similar).
+
+### Opción D — embeber en otro sitio (iframe)
+
+Una vez publicado en una URL pública, puedes insertar el mapa en cualquier blog, CMS o landing pegando un snippet HTML:
+
+```html
+<iframe
+  src="https://tu-sitio.com/mi-mapa/"
+  width="100%" height="520"
+  style="border:0;border-radius:8px;max-width:100%;"
+  loading="lazy" allowfullscreen
+  title="{{TITULO}}">
+</iframe>
+```
+
+Reemplaza la URL por la real donde tengas el kit publicado. Funciona en WordPress, Ghost, Medium (con HTML embed), Notion (vía `/embed`), Substack, y cualquier CMS que acepte HTML. El builder de GeoHub Chile tiene un generador que te arma este snippet automáticamente (paso 5).
 
 ---
 
