@@ -1,0 +1,660 @@
+---
+import Base from '../../layouts/Base.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+
+<Base
+  title="¿En qué comuna estoy? · Herramientas · GeoHub Chile"
+  description="Pega una coordenada o sube un CSV con lat/lng y obtén comuna, provincia y región para cada punto. Usa polígonos oficiales BCN. 100% client-side."
+>
+  <Header />
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <script is:inline src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+  <div class="herr-page">
+    <div class="herr-back">
+      <a href={`${base}/herramientas/`}>← Herramientas</a>
+    </div>
+
+    <div class="herr-hdr">
+      <h1>📍 ¿En qué comuna estoy?</h1>
+      <p>
+        Pega una o varias coordenadas (o sube un <strong>CSV</strong>) y obtén
+        <strong>comuna · provincia · región</strong> para cada punto. Usa los
+        polígonos oficiales de <strong>BCN</strong> (Biblioteca del Congreso
+        Nacional, CC BY 3.0 CL), simplificados para web. Todo ocurre en tu
+        navegador — los datos no se suben a ningún servidor.
+      </p>
+    </div>
+
+    <div id="loading-banner" class="loading-banner">
+      <span class="spinner"></span> Cargando polígonos comunales (~3 MB)…
+    </div>
+
+    <!-- Entrada -->
+    <div class="config-card" id="entrada-card" style="display:none">
+      <div class="config-step"><strong>1.</strong> Entrada</div>
+      <div class="entrada-tabs">
+        <button class="tab tab-active" data-tab="texto" type="button">Texto / pegar</button>
+        <button class="tab" data-tab="csv" type="button">CSV</button>
+      </div>
+
+      <div class="tab-pane" data-pane="texto">
+        <p class="hint">
+          Una coordenada por línea, en formato <code>lat, lng</code> o
+          <code>lat lng</code> (ej: <code>-33.4569, -70.6483</code>).
+          Acepta hasta <strong>5.000 puntos</strong> de una vez.
+        </p>
+        <textarea id="in-texto" rows="6" placeholder="-33.4569, -70.6483
+-39.8142, -73.2459
+-53.1638, -70.9171"></textarea>
+        <div class="form-row">
+          <label class="ord-toggle">
+            <input type="radio" name="orden" value="latlng" checked /> lat, lng (Google Maps)
+          </label>
+          <label class="ord-toggle">
+            <input type="radio" name="orden" value="lnglat" /> lng, lat (GeoJSON)
+          </label>
+          <button id="btn-procesar-texto" class="btn-primary" type="button">↳ Identificar</button>
+        </div>
+      </div>
+
+      <div class="tab-pane" data-pane="csv" style="display:none">
+        <label class="dropzone" id="dropzone">
+          <input type="file" id="file-input" accept=".csv,.txt,.tsv" />
+          <div class="dz-main">
+            <div class="dz-icon">📂</div>
+            <div class="dz-text">Arrastra un <strong>CSV</strong> o <strong>haz clic para elegir</strong></div>
+            <div class="dz-formats">.csv · .tsv · .txt — primera línea = nombres de columna</div>
+          </div>
+        </label>
+        <div id="csv-cfg" style="display:none">
+          <p class="hint">Detecté estas columnas. Elige cuál es la latitud y cuál la longitud:</p>
+          <div class="form-row form-row-tight">
+            <label class="field">
+              <span class="field-lbl">Columna LAT</span>
+              <select id="csv-col-lat"></select>
+            </label>
+            <label class="field">
+              <span class="field-lbl">Columna LNG</span>
+              <select id="csv-col-lng"></select>
+            </label>
+            <button id="btn-procesar-csv" class="btn-primary" type="button">↳ Identificar</button>
+          </div>
+          <p class="hint csv-stats" id="csv-stats"></p>
+        </div>
+      </div>
+    </div>
+
+    <div id="status" class="status"></div>
+
+    <!-- Resultado -->
+    <div id="resultado" class="resultado" style="display:none">
+      <div class="config-card">
+        <div class="config-step">
+          <strong>2.</strong> Resultados (<span id="r-total">0</span>)
+          <span class="result-mini">
+            <span id="r-ok">0</span> identificados · <span id="r-fail">0</span> sin comuna
+          </span>
+        </div>
+        <div class="resumen-actions">
+          <button id="btn-csv" class="btn-tool">⬇ Descargar CSV</button>
+          <button id="btn-copiar" class="btn-tool">📋 Copiar CSV</button>
+          <button id="btn-limpiar" class="btn-tool btn-tool-ghost">✕ Limpiar</button>
+        </div>
+      </div>
+
+      <div id="mapa" class="mapa-tool"></div>
+
+      <div class="tabla-card">
+        <div class="tabla-head">
+          <span>Resultados</span>
+          <span class="tabla-hint">(mostrando hasta 200 filas en pantalla — la descarga incluye todo)</span>
+        </div>
+        <div id="tabla-wrap" class="tabla-wrap"></div>
+      </div>
+    </div>
+
+    <div class="footer-attr">
+      Polígonos comunales: <strong>BCN</strong> — Biblioteca del Congreso Nacional de Chile,
+      <a href="https://www.bcn.cl/siit/mapas_vectoriales" target="_blank" rel="noopener">bcn.cl/siit/mapas_vectoriales</a>,
+      licencia CC BY 3.0 CL. Simplificados con <code>mapshaper</code> (Visvalingam 3%) para uso web.
+      Los cálculos point-in-polygon son aproximados; para uso oficial usar capas BCN sin simplificar.
+    </div>
+  </div>
+
+  <Footer />
+</Base>
+
+<style>
+  .herr-page { max-width: 1280px; margin: 0 auto; padding: 1.5rem 1.5rem 4rem; }
+  .herr-back a {
+    font-family: var(--mono); font-size: 11px;
+    text-transform: uppercase; letter-spacing: 1px;
+    color: var(--t3); text-decoration: none;
+    transition: color 0.15s;
+  }
+  .herr-back a:hover { color: var(--verde); }
+  .herr-hdr { margin: 1.5rem 0 1.25rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--border); }
+  .herr-hdr h1 { font-size: 1.6rem; font-weight: 700; color: var(--t1); margin-bottom: 0.5rem; letter-spacing: -0.015em; }
+  .herr-hdr p { color: var(--t2); font-size: 13.5px; line-height: 1.7; max-width: 82ch; }
+  .herr-hdr code { background: var(--surface2); border: 1px solid var(--border); padding: 1px 5px; border-radius: 4px; font-family: var(--mono); font-size: 11.5px; color: var(--verde); }
+  .herr-hdr strong { color: var(--t1); }
+
+  .loading-banner {
+    padding: 0.85rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--verde);
+    border-radius: var(--r);
+    color: var(--t2); font-size: 13px;
+    margin-bottom: 1rem;
+    display: flex; align-items: center; gap: 0.6rem;
+  }
+  .spinner {
+    display: inline-block; width: 12px; height: 12px;
+    border: 2px solid var(--border2); border-top-color: var(--verde);
+    border-radius: 50%; animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .config-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 1rem 1.25rem; }
+  .config-step { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--t3); margin-bottom: 0.85rem; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+  .config-step strong { color: var(--verde); margin-right: 4px; }
+  .result-mini { color: var(--t3); font-family: var(--mono); font-size: 10.5px; text-transform: none; letter-spacing: 0; }
+  .result-mini #r-ok { color: var(--verde); }
+  .result-mini #r-fail { color: #ef6c00; }
+
+  .entrada-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 0.85rem; }
+  .tab {
+    background: transparent; border: none; padding: 6px 14px;
+    color: var(--t3); font-size: 12.5px; cursor: pointer;
+    border-bottom: 2px solid transparent;
+    font-family: var(--sans);
+  }
+  .tab:hover { color: var(--t1); }
+  .tab-active { color: var(--verde); border-bottom-color: var(--verde); }
+
+  .hint { color: var(--t2); font-size: 12px; line-height: 1.6; margin: 0 0 0.6rem; max-width: 80ch; }
+  .hint code { background: var(--surface2); border: 1px solid var(--border); padding: 0 4px; border-radius: 3px; font-family: var(--mono); font-size: 11px; color: var(--verde); }
+
+  textarea#in-texto {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 5px;
+    padding: 0.55rem 0.7rem;
+    color: var(--t1);
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.6;
+    resize: vertical; min-height: 100px;
+  }
+  textarea#in-texto:focus { outline: none; border-color: var(--verde); }
+
+  .form-row { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin-top: 0.6rem; }
+  .form-row-tight { gap: 0.5rem; }
+  .ord-toggle { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--t2); cursor: pointer; }
+  .ord-toggle input { accent-color: var(--verde); }
+
+  .field { display: flex; flex-direction: column; gap: 0.3rem; }
+  .field-lbl { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--t3); }
+  .field select {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 5px;
+    padding: 0.4rem 0.6rem;
+    color: var(--t1);
+    font-family: var(--sans); font-size: 12.5px;
+  }
+  .field select:focus { outline: none; border-color: var(--verde); }
+
+  .btn-primary {
+    background: var(--verde); color: #06121a; border: none;
+    padding: 0.5rem 1rem; border-radius: 6px;
+    font-family: var(--sans); font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s;
+    margin-left: auto;
+  }
+  .btn-primary:hover { background: #5ce29c; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .dropzone {
+    display: block; cursor: pointer;
+    background: var(--surface2);
+    border: 2px dashed var(--border2);
+    border-radius: var(--r);
+    padding: 1.5rem 1.5rem;
+    text-align: center;
+    transition: all 0.18s ease;
+  }
+  .dropzone:hover, .dropzone.drag { border-color: var(--verde); background: var(--verde-glow); }
+  .dropzone input { display: none; }
+  .dz-icon { font-size: 2rem; margin-bottom: 0.4rem; }
+  .dz-text { font-size: 14px; color: var(--t1); }
+  .dz-text strong { color: var(--verde); }
+  .dz-formats { font-size: 11.5px; color: var(--t3); margin-top: 0.4rem; font-family: var(--mono); }
+
+  #csv-cfg { margin-top: 0.85rem; padding-top: 0.85rem; border-top: 1px solid var(--border); }
+  .csv-stats { color: var(--t3); font-style: italic; margin-top: 0.5rem; }
+
+  .status:empty { display: none; }
+  .status {
+    padding: 0.85rem 1rem;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-left: 3px solid var(--border2);
+    border-radius: var(--r); margin: 1rem 0;
+  }
+  .status-title { font-size: 13.5px; font-weight: 600; color: var(--t1); line-height: 1.4; }
+  .status-body { margin-top: 0.4rem; font-size: 12.5px; color: var(--t2); line-height: 1.65; max-width: 80ch; }
+  .status.error { background: rgba(230,57,70,0.06); border-color: rgba(230,57,70,0.2); border-left-color: #e63946; }
+  .status.error .status-title { color: #ff8a92; }
+  .status.error .status-body { color: #d9b4b8; }
+  .status.success { background: rgba(61,214,140,0.05); border-color: var(--verde-dim); border-left-color: var(--verde); }
+  .status.success .status-title { color: var(--verde); }
+
+  .resultado { display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem; }
+
+  .resumen-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .btn-tool {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--t1); padding: 0.4rem 0.85rem;
+    border-radius: 6px;
+    font-family: var(--sans); font-size: 12.5px; font-weight: 500;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .btn-tool:hover { border-color: var(--verde-dim); color: var(--verde); background: var(--verde-glow); }
+  .btn-tool-ghost { color: var(--t3); }
+  .btn-tool-ghost:hover { color: #e63946; border-color: rgba(230,57,70,0.4); background: rgba(230,57,70,0.08); }
+
+  .mapa-tool { height: 440px; border: 1px solid var(--border); border-radius: var(--r); background: var(--surface); overflow: hidden; }
+
+  .tabla-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); }
+  .tabla-head {
+    padding: 0.7rem 1rem;
+    font-family: var(--mono); font-size: 12px;
+    color: var(--t2);
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .tabla-hint { color: var(--t3); font-size: 10.5px; }
+  .tabla-wrap { max-height: 420px; overflow: auto; }
+  .tabla-wrap table { width: 100%; border-collapse: collapse; font-size: 11.5px; font-family: var(--mono); }
+  .tabla-wrap th, .tabla-wrap td { padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; color: var(--t2); }
+  .tabla-wrap th { position: sticky; top: 0; background: var(--surface2); color: var(--t1); font-weight: 600; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px; z-index: 1; }
+  .tabla-wrap tr:hover td { background: var(--surface2); }
+  .tabla-wrap td.fail { color: #ef6c00; font-style: italic; }
+  .tabla-wrap td.ok-comuna { color: var(--t1); }
+
+  .footer-attr {
+    margin-top: 2rem; padding: 0.85rem 1rem;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r);
+    color: var(--t3); font-size: 11.5px; line-height: 1.7;
+  }
+  .footer-attr strong { color: var(--t2); }
+  .footer-attr code { background: var(--surface2); border: 1px solid var(--border); padding: 0 4px; border-radius: 3px; font-family: var(--mono); font-size: 10.5px; color: var(--verde); }
+  .footer-attr a { color: var(--verde); text-decoration: none; }
+  .footer-attr a:hover { text-decoration: underline; }
+</style>
+
+<style is:global>
+  .leaflet-popup-content-wrapper {
+    background: #131920 !important; color: #e8f0fe !important;
+    border: 1px solid #2d4155 !important; border-radius: 6px !important;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.55) !important;
+  }
+  .leaflet-popup-tip { background: #131920 !important; border: 1px solid #2d4155 !important; box-shadow: none !important; }
+  .leaflet-popup-content { margin: 10px 14px !important; color: #e8f0fe !important; line-height: 1.5 !important; font-family: 'Courier New', monospace; font-size: 11.5px; }
+  .leaflet-control-zoom a, .leaflet-bar a {
+    background: #131920 !important; color: #e8f0fe !important;
+    border: 1px solid #21303f !important;
+  }
+  .leaflet-control-zoom a:hover { background: #1a2230 !important; color: #3dd68c !important; border-color: #239960 !important; }
+  .leaflet-control-attribution { background: rgba(13,17,23,0.85) !important; color: #4a6580 !important; font-size: 10px !important; }
+  .leaflet-control-attribution a { color: #8fa3bf !important; }
+</style>
+
+<script is:inline define:vars={{ BASE_URL: base }}>
+  (() => {
+    const $ = (id) => document.getElementById(id);
+    const loadingBanner = $('loading-banner');
+    const entradaCard = $('entrada-card');
+    const status = $('status');
+    const resultado = $('resultado');
+
+    let comunasFC = null;       // FeatureCollection
+    let comunasIdx = [];        // Array de { bbox: [minX,minY,maxX,maxY], props, geom }
+    let map = null;
+    let puntosLayer = null;
+
+    function escapar(s) {
+      return String(s).replace(/[&<>"']/g, m =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])
+      );
+    }
+
+    function setStatus(arg, clase = '') {
+      if (!arg) { status.innerHTML = ''; status.className = 'status'; return; }
+      let title = arg, body = '', type = clase;
+      if (typeof arg === 'object') {
+        title = arg.title; body = arg.body || ''; type = arg.type || clase;
+      }
+      const parts = [`<div class="status-title">${escapar(title)}</div>`];
+      if (body) parts.push(`<div class="status-body">${escapar(body)}</div>`);
+      status.innerHTML = parts.join('');
+      status.className = 'status' + (type ? ' ' + type : '');
+    }
+
+    // ─── Point-in-polygon ───
+    function bboxOfCoords(coords) {
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      function walk(c) {
+        if (typeof c[0] === 'number') {
+          if (c[0] < minX) minX = c[0];
+          if (c[1] < minY) minY = c[1];
+          if (c[0] > maxX) maxX = c[0];
+          if (c[1] > maxY) maxY = c[1];
+        } else for (const sub of c) walk(sub);
+      }
+      walk(coords);
+      return [minX, minY, maxX, maxY];
+    }
+    function pointInRing(x, y, ring) {
+      let inside = false;
+      for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const xi = ring[i][0], yi = ring[i][1];
+        const xj = ring[j][0], yj = ring[j][1];
+        const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+      }
+      return inside;
+    }
+    function pointInPolygon(x, y, rings) {
+      if (!pointInRing(x, y, rings[0])) return false;
+      for (let i = 1; i < rings.length; i++) {
+        if (pointInRing(x, y, rings[i])) return false;
+      }
+      return true;
+    }
+    function findComuna(lng, lat) {
+      for (const c of comunasIdx) {
+        const [minX, minY, maxX, maxY] = c.bbox;
+        if (lng < minX || lng > maxX || lat < minY || lat > maxY) continue;
+        if (c.type === 'Polygon') {
+          if (pointInPolygon(lng, lat, c.geom)) return c.props;
+        } else {
+          for (const poly of c.geom) {
+            if (pointInPolygon(lng, lat, poly)) return c.props;
+          }
+        }
+      }
+      return null;
+    }
+
+    // ─── Cargar comunas ───
+    async function cargarComunas() {
+      try {
+        const res = await fetch(`${BASE_URL}/data/comunas-bcn.geojson`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        comunasFC = await res.json();
+        comunasIdx = comunasFC.features.map(f => ({
+          bbox: bboxOfCoords(f.geometry.coordinates),
+          props: f.properties,
+          type: f.geometry.type,
+          geom: f.geometry.coordinates,
+        }));
+        loadingBanner.style.display = 'none';
+        entradaCard.style.display = 'block';
+      } catch (e) {
+        loadingBanner.innerHTML = '<strong style="color:#ff8a92">No pude cargar los polígonos comunales.</strong> ' + escapar(e.message || e) + '. Refresca la página.';
+      }
+    }
+
+    // ─── Tabs ───
+    document.querySelectorAll('.tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(b => b.classList.toggle('tab-active', b === btn));
+        const which = btn.dataset.tab;
+        document.querySelectorAll('.tab-pane').forEach(p => {
+          p.style.display = p.dataset.pane === which ? 'block' : 'none';
+        });
+      });
+    });
+
+    // ─── Procesar texto ───
+    function parsearLineas(txt, ordenLatLng) {
+      const lines = txt.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      const out = [];
+      for (let i = 0; i < lines.length; i++) {
+        const parts = lines[i].split(/[\s,;]+/).map(p => p.replace(',', '.')).filter(Boolean);
+        if (parts.length < 2) { out.push({ raw: lines[i], error: 'línea sin 2 números' }); continue; }
+        const a = parseFloat(parts[0]), b = parseFloat(parts[1]);
+        if (!Number.isFinite(a) || !Number.isFinite(b)) { out.push({ raw: lines[i], error: 'no numérico' }); continue; }
+        const [lat, lng] = ordenLatLng ? [a, b] : [b, a];
+        out.push({ lat, lng, raw: lines[i] });
+      }
+      return out;
+    }
+
+    $('btn-procesar-texto').addEventListener('click', () => {
+      const txt = $('in-texto').value;
+      const ordenLatLng = document.querySelector('input[name=orden]:checked').value === 'latlng';
+      const puntos = parsearLineas(txt, ordenLatLng);
+      if (puntos.length === 0) { setStatus({ title: 'No detecté coordenadas en el texto.', type: 'error' }); return; }
+      if (puntos.length > 5000) { setStatus({ title: `Máximo 5.000 puntos por vez (recibí ${puntos.length}).`, type: 'error' }); return; }
+      procesar(puntos);
+    });
+
+    // ─── CSV ───
+    let csvHeaders = [], csvRows = [];
+    const fileInput = $('file-input');
+    const dropzone = $('dropzone');
+
+    function parseCSV(txt) {
+      const sep = detectarSep(txt);
+      const lines = txt.split(/\r?\n/).filter(l => l.length > 0);
+      const headers = lines[0].split(sep).map(h => h.trim().replace(/^["']|["']$/g, ''));
+      const rows = lines.slice(1).map(l => l.split(sep).map(v => v.trim().replace(/^["']|["']$/g, '')));
+      return { headers, rows };
+    }
+    function detectarSep(txt) {
+      const sample = txt.split(/\r?\n/).slice(0, 5).join('\n');
+      const counts = {
+        ',': (sample.match(/,/g) || []).length,
+        ';': (sample.match(/;/g) || []).length,
+        '\t': (sample.match(/\t/g) || []).length,
+      };
+      return Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
+    }
+    function adivinarCol(headers, candidatos) {
+      for (let i = 0; i < headers.length; i++) {
+        const h = headers[i].toLowerCase();
+        if (candidatos.some(c => h === c || h.startsWith(c))) return i;
+      }
+      return -1;
+    }
+
+    async function manejarCSV(file) {
+      try {
+        const txt = await file.text();
+        const { headers, rows } = parseCSV(txt);
+        if (headers.length < 2 || rows.length === 0) { setStatus({ title: 'No pude leer el CSV.', body: 'Necesita al menos 2 columnas y 1 fila de datos.', type: 'error' }); return; }
+        csvHeaders = headers; csvRows = rows;
+        const selLat = $('csv-col-lat'), selLng = $('csv-col-lng');
+        const opts = headers.map((h, i) => `<option value="${i}">${escapar(h)}</option>`).join('');
+        selLat.innerHTML = opts; selLng.innerHTML = opts;
+        const idxLat = adivinarCol(headers, ['lat', 'latitud', 'latitude', 'y']);
+        const idxLng = adivinarCol(headers, ['lng', 'lon', 'long', 'longitud', 'longitude', 'x']);
+        if (idxLat >= 0) selLat.value = idxLat;
+        if (idxLng >= 0) selLng.value = idxLng;
+        $('csv-cfg').style.display = 'block';
+        $('csv-stats').textContent = `${rows.length} fila(s) cargadas. Archivo: ${file.name}.`;
+        setStatus('');
+      } catch (e) {
+        setStatus({ title: 'Error leyendo el CSV.', body: e.message || String(e), type: 'error' });
+      }
+    }
+
+    fileInput.addEventListener('change', e => { const f = e.target.files?.[0]; if (f) manejarCSV(f); });
+    ['dragenter', 'dragover'].forEach(ev =>
+      dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('drag'); })
+    );
+    ['dragleave', 'drop'].forEach(ev =>
+      dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('drag'); })
+    );
+    dropzone.addEventListener('drop', e => { const f = e.dataTransfer?.files?.[0]; if (f) manejarCSV(f); });
+
+    $('btn-procesar-csv').addEventListener('click', () => {
+      if (csvRows.length === 0) return;
+      if (csvRows.length > 5000) { setStatus({ title: `Máximo 5.000 puntos por vez (CSV tiene ${csvRows.length}).`, type: 'error' }); return; }
+      const iLat = parseInt($('csv-col-lat').value, 10);
+      const iLng = parseInt($('csv-col-lng').value, 10);
+      const puntos = csvRows.map((row, i) => {
+        const lat = parseFloat(String(row[iLat]).replace(',', '.'));
+        const lng = parseFloat(String(row[iLng]).replace(',', '.'));
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+          return { raw: `fila ${i + 2}`, error: 'lat/lng no numérico' };
+        }
+        return { lat, lng, raw: `fila ${i + 2}`, extra: row };
+      });
+      procesar(puntos);
+    });
+
+    // ─── Procesamiento principal ───
+    let resultados = [];
+
+    function procesar(puntos) {
+      setStatus('');
+      const t0 = performance.now();
+      let ok = 0, fail = 0;
+      resultados = puntos.map(p => {
+        if (p.error || !Number.isFinite(p.lat) || !Number.isFinite(p.lng)) {
+          fail++;
+          return { ...p, comuna: null };
+        }
+        const props = findComuna(p.lng, p.lat);
+        if (props) ok++; else fail++;
+        return { ...p, comuna: props || null };
+      });
+      const dt = (performance.now() - t0).toFixed(0);
+      resultado.style.display = 'flex';
+      $('r-total').textContent = puntos.length;
+      $('r-ok').textContent = ok;
+      $('r-fail').textContent = fail;
+      requestAnimationFrame(() => {
+        renderMapa();
+        renderTabla();
+      });
+      setStatus({
+        title: `✓ ${ok} de ${puntos.length} punto(s) identificados (${dt} ms).`,
+        body: fail > 0 ? `${fail} sin comuna — probablemente fuera de Chile o sobre cuerpo de agua.` : '',
+        type: 'success',
+      });
+    }
+
+    function renderMapa() {
+      if (!map) {
+        map = L.map('mapa', { worldCopyJump: true });
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+          attribution: '© OpenStreetMap · © CARTO · Polígonos BCN',
+          subdomains: 'abcd', maxZoom: 18, noWrap: true,
+        }).addTo(map);
+      }
+      if (puntosLayer) puntosLayer.remove();
+      puntosLayer = L.featureGroup();
+      const bounds = L.latLngBounds([]);
+      resultados.forEach((r, i) => {
+        if (!Number.isFinite(r.lat) || !Number.isFinite(r.lng)) return;
+        const ok = !!r.comuna;
+        const m = L.circleMarker([r.lat, r.lng], {
+          radius: 6,
+          color: ok ? '#3dd68c' : '#ef6c00',
+          weight: 2,
+          fillColor: ok ? '#3dd68c' : '#ef6c00',
+          fillOpacity: 0.55,
+        });
+        const popup = ok
+          ? `<strong>${escapar(r.comuna.nom_comuna)}</strong><br><span style="color:#8fa3bf">${escapar(r.comuna.nom_provincia)} · ${escapar(r.comuna.nom_region)}</span><br><span style="color:#4a6580;font-size:10.5px">${r.lat.toFixed(5)}, ${r.lng.toFixed(5)}</span>`
+          : `<strong style="color:#ff8a92">Sin comuna</strong><br><span style="color:#4a6580;font-size:10.5px">${r.lat.toFixed(5)}, ${r.lng.toFixed(5)}</span>`;
+        m.bindPopup(popup);
+        puntosLayer.addLayer(m);
+        bounds.extend([r.lat, r.lng]);
+      });
+      puntosLayer.addTo(map);
+      if (bounds.isValid()) map.fitBounds(bounds, { padding: [40, 40], maxZoom: 12 });
+      else map.setView([-37, -71], 4);
+      setTimeout(() => map.invalidateSize(), 100);
+    }
+
+    function renderTabla() {
+      const filas = resultados.slice(0, 200).map((r, i) => {
+        const lat = Number.isFinite(r.lat) ? r.lat.toFixed(5) : '—';
+        const lng = Number.isFinite(r.lng) ? r.lng.toFixed(5) : '—';
+        if (!r.comuna) {
+          return `<tr><td style="color:#4a6580">${i + 1}</td><td>${lat}</td><td>${lng}</td><td colspan="4" class="fail">${escapar(r.error || 'sin comuna')}</td></tr>`;
+        }
+        return `<tr><td style="color:#4a6580">${i + 1}</td><td>${lat}</td><td>${lng}</td><td class="ok-comuna">${escapar(r.comuna.nom_comuna)}</td><td>${escapar(r.comuna.nom_provincia)}</td><td>${escapar(r.comuna.nom_region)}</td><td style="color:#4a6580">${escapar(r.comuna.cod_comuna)}</td></tr>`;
+      }).join('');
+      const head = '<tr><th>#</th><th>lat</th><th>lng</th><th>comuna</th><th>provincia</th><th>región</th><th>cod_comuna</th></tr>';
+      const footer = resultados.length > 200 ? `<div class="tabla-hint" style="padding:.7rem 1rem">Mostrando 200 de ${resultados.length} filas. La descarga incluye todo.</div>` : '';
+      $('tabla-wrap').innerHTML = `<table>${head}${filas}</table>${footer}`;
+    }
+
+    // ─── Descargas ───
+    function buildCSV() {
+      const sep = ',';
+      const headers = ['lat', 'lng', 'comuna', 'provincia', 'region', 'cod_comuna', 'cod_region'];
+      const esc = v => {
+        const s = String(v == null ? '' : v);
+        return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+      };
+      const filas = resultados.map(r => {
+        const c = r.comuna;
+        return [
+          Number.isFinite(r.lat) ? r.lat : '',
+          Number.isFinite(r.lng) ? r.lng : '',
+          c?.nom_comuna || '',
+          c?.nom_provincia || '',
+          c?.nom_region || '',
+          c?.cod_comuna || '',
+          c?.cod_region || '',
+        ].map(esc).join(sep);
+      });
+      return [headers.join(sep), ...filas].join('\n');
+    }
+
+    $('btn-csv').addEventListener('click', () => {
+      const csv = buildCSV();
+      const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'comunas-resultado.csv'; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+    $('btn-copiar').addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(buildCSV());
+        setStatus({ title: '✓ CSV copiado al portapapeles.', type: 'success' });
+        setTimeout(() => setStatus(''), 2000);
+      } catch {
+        setStatus({ title: 'No pude copiar al portapapeles.', body: 'Usa "Descargar CSV" como alternativa.', type: 'error' });
+      }
+    });
+    $('btn-limpiar').addEventListener('click', () => {
+      resultados = [];
+      resultado.style.display = 'none';
+      if (puntosLayer) { puntosLayer.remove(); puntosLayer = null; }
+      $('in-texto').value = '';
+      $('csv-cfg').style.display = 'none';
+      csvRows = []; csvHeaders = [];
+      fileInput.value = '';
+      setStatus('');
+    });
+
+    // Init
+    cargarComunas();
+  })();
+</script>
