@@ -29,16 +29,71 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     <div class="herr-hdr">
       <h1>📦 Kit Webmap descargable</h1>
       <p>
-        Sube <strong>una o varias capas</strong>, configura colores y
-        simbología (color único o por categoría), elige basemap y título, y
+        Sube <strong>una o varias capas</strong> geográficas, configúralas, y
         descarga un mapa listo para publicar: como <code>.html</code>
         autocontenido o como <code>.zip</code> editable con
-        <code>README.md</code>. Incluye <strong>leyenda</strong>,
-        <strong>selector de capas</strong>, <strong>escala</strong> y
-        <strong>botón fullscreen</strong>. Todo ocurre en tu navegador — los
-        archivos no se suben a ningún servidor.
+        <code>README.md</code>. Todo ocurre en tu navegador — los archivos no
+        se suben a ningún servidor.
       </p>
     </div>
+
+    <!-- Qué genera el kit -->
+    <details class="features-card" open>
+      <summary>
+        <span class="features-title">Qué incluye tu kit generado</span>
+        <span class="features-hint">click para colapsar</span>
+      </summary>
+      <div class="features-grid">
+        <div class="feature">
+          <div class="feature-h">📥 Entrada</div>
+          <p>Sube varios archivos a la vez: <code>.geojson</code> · <code>.json</code> · <code>.kml</code> · <code>.kmz</code> · <code>.zip</code> con shapefile (.shp+.dbf+.shx+.prj).</p>
+        </div>
+        <div class="feature">
+          <div class="feature-h">🎨 Simbología</div>
+          <p>3 modos por capa: <strong>color único</strong>, <strong>por categoría</strong> (paleta automática por valor de un campo) o <strong>graduado</strong> (coropleta con 3-7 clases por quantiles o intervalos iguales, 7 rampas).</p>
+        </div>
+        <div class="feature">
+          <div class="feature-h">🗺️ Basemaps</div>
+          <p>5 opciones precargadas: CARTO Dark, CARTO Light, OpenStreetMap, Esri Satélite, OpenTopoMap. El usuario final cambia entre ellas con el selector del mapa.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-h">📋 Leyenda interactiva</div>
+          <p>Colapsable, con <strong>checkboxes por categoría</strong> que filtran features sin recargar. Muestra rangos con etiquetas (<code>1.5k – 8.2k</code>) en capas graduadas.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-h">🔍 Buscador</div>
+          <p>Barra de búsqueda por dirección o lugar (geocoder Nominatim/OpenStreetMap, global, sin API key). Click en un resultado vuela hasta él.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-h">💬 Popups</div>
+          <p>Click sobre cada feature muestra sus propiedades. Eliges qué campos mostrar por capa. Las URLs en los valores son clicables automáticamente.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-h">🔵 Cluster automático</div>
+          <p>Capas con más de 100 puntos se agrupan en clusters al alejar el zoom (verde / naranja / rojo según tamaño). Se desactiva editando <code>config.json</code>.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-h">⛶ Controles</div>
+          <p>Selector de capas (basemap + overlays), escala en km, botón pantalla completa, controles de zoom — todos en dark theme.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-h">📦 Formatos de salida</div>
+          <p><strong>.html</strong>: un solo archivo autocontenido (doble click y abre). <strong>.zip</strong>: carpeta con <code>index.html</code> + <code>config.json</code> + <code>data/</code> + <code>style.css</code> + <code>README.md</code> editables.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-h">🚀 Publicación</div>
+          <p>El README incluye paso a paso para subir <strong>gratis</strong> a GitHub Pages o Netlify (drag &amp; drop). Sin cuenta de developer requerida.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-h">💾 Autosave</div>
+          <p>Tu sesión (capas + configuración) se guarda automáticamente en este navegador. Si refrescas o cierras la pestaña, lo recuperas al volver.</p>
+        </div>
+        <div class="feature">
+          <div class="feature-h">🔒 Privacidad</div>
+          <p>100% client-side. Tus datos no se suben a ningún servidor, no hay tracking ni cookies. El kit generado tampoco — solo carga Leaflet desde CDN.</p>
+        </div>
+      </div>
+    </details>
 
     <!-- Step 1: cargar archivos -->
     <label class="dropzone" id="dropzone">
@@ -144,6 +199,62 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     font-family: var(--mono); font-size: 11.5px; color: var(--verde);
   }
   .herr-hdr strong { color: var(--t1); }
+
+  .features-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    margin-bottom: 1rem;
+  }
+  .features-card > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 0.85rem 1.25rem;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 0.5rem;
+    user-select: none;
+  }
+  .features-card > summary::-webkit-details-marker { display: none; }
+  .features-card > summary::before {
+    content: '▾';
+    color: var(--verde);
+    margin-right: 0.5rem;
+    transition: transform 0.15s;
+    display: inline-block;
+  }
+  .features-card:not([open]) > summary::before { transform: rotate(-90deg); }
+  .features-title {
+    font-size: 13.5px; font-weight: 600; color: var(--t1);
+    flex: 1;
+  }
+  .features-hint {
+    font-family: var(--mono); font-size: 10.5px;
+    text-transform: uppercase; letter-spacing: 1px;
+    color: var(--t3);
+  }
+  .features-grid {
+    padding: 0 1.25rem 1.1rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.85rem 1.2rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+  }
+  .feature .feature-h {
+    font-size: 12.5px; font-weight: 600; color: var(--t1);
+    margin-bottom: 0.25rem;
+  }
+  .feature p {
+    font-size: 11.5px; color: var(--t2);
+    line-height: 1.55; margin: 0;
+  }
+  .feature code {
+    background: var(--surface2); border: 1px solid var(--border);
+    padding: 0px 4px; border-radius: 3px;
+    font-family: var(--mono); font-size: 10.5px;
+    color: var(--verde);
+  }
+  .feature strong { color: var(--t1); font-weight: 600; }
 
   .dropzone {
     display: block; cursor: pointer;

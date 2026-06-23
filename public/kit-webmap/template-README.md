@@ -2,7 +2,20 @@
 
 Webmap generado con [GeoHub Chile](https://geohub.cl) — kit estático, 100% client-side, sin backend.
 
-Este kit contiene **{{NUM_CAPAS}} capa(s)** de datos geográficos con leyenda, selector de capas, escala y botón de pantalla completa.
+Este kit contiene **{{NUM_CAPAS}} capa(s)** de datos geográficos.
+
+## ✨ Qué incluye
+
+- **Entrada multi-formato**: GeoJSON, KML, KMZ, Shapefile (.zip) — soportados desde el builder.
+- **Simbología**: color único, por categoría (paleta automática) o graduado / coropleta (3-7 clases, 7 rampas).
+- **5 basemaps**: CARTO Dark/Light, OpenStreetMap, Esri Satélite, OpenTopoMap. El visitante puede cambiar entre ellos.
+- **Leyenda interactiva**: checkboxes por categoría filtran features sin recargar.
+- **Buscador de direcciones**: geocoder global (Nominatim / OpenStreetMap, sin API key).
+- **Popups editables**: configurables por capa (qué propiedades mostrar). URLs clicables.
+- **Cluster automático** de puntos cuando hay más de 100 (verde / naranja / rojo según tamaño).
+- **Controles**: zoom, escala en km, pantalla completa, selector de capas.
+- **Dark theme** consistente en todo (popups, controles, leyenda).
+- **Privacidad**: sin tracking, sin cookies, sin analytics. Solo Leaflet desde CDN.
 
 ## 📁 Qué incluye el kit
 
