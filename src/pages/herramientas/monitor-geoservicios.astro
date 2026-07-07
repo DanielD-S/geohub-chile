@@ -36,6 +36,25 @@ const generado = new Date(estado.generado);
 const generadoTxt = generado.toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'America/Santiago' })
   + ' ' + generado.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Santiago' });
 
+// URL "abrible" por humanos según el tipo: los WMS/WFS sin parámetros
+// devuelven un XML de error, así que el enlace apunta a GetCapabilities.
+// ArcGIS REST y las APIs JSON se abren tal cual (la respuesta cruda es
+// la esperada para ese tipo de servicio).
+function urlAbrir(f: { tipo: string; url: string }) {
+  if (f.tipo === 'wms' || f.tipo === 'wfs') {
+    const sep = f.url.includes('?') ? '&' : '?';
+    return `${f.url}${sep}SERVICE=${f.tipo.toUpperCase()}&REQUEST=GetCapabilities`;
+  }
+  return f.url;
+}
+const TITULO_ABRIR: Record<string, string> = {
+  arcgis: 'Abrir la página REST del servicio',
+  wms: 'Abrir GetCapabilities (XML) del servicio',
+  wfs: 'Abrir GetCapabilities (XML) del servicio',
+  geojson: 'Abrir la respuesta GeoJSON cruda del servicio',
+  json: 'Abrir la respuesta JSON cruda de la API',
+};
+
 function latenciaTxt(ms: number | undefined) {
   if (ms == null) return '—';
   return ms >= 1000 ? (ms / 1000).toFixed(1) + ' s' : ms + ' ms';
@@ -115,7 +134,7 @@ function fmtNum(n: number | undefined) {
                           ))}
                         </span>
                       </td>
-                      <td class="c-link"><a href={f.url} target="_blank" rel="noopener" title="Abrir endpoint">↗</a></td>
+                      <td class="c-link"><a href={urlAbrir(f)} target="_blank" rel="noopener" title={TITULO_ABRIR[f.tipo] ?? 'Abrir endpoint'}>↗</a></td>
                     </tr>
                   );
                 })}
@@ -168,7 +187,10 @@ function fmtNum(n: number | undefined) {
       <span class="sem sem-down"></span> = sin respuesta o con error.
       <strong>Historial</strong>: últimas 30 verificaciones
       registradas (solo se guardan las corridas donde algún estado cambió, más un heartbeat
-      cada 3 días). Los servicios pertenecen a sus instituciones publicadoras.
+      cada 3 días). El enlace <strong>↗</strong> abre la respuesta técnica del servicio
+      (página REST, XML de capabilities o JSON crudo, según el tipo) — ver datos "en bruto"
+      ahí es normal y significa que el servicio responde. Los servicios pertenecen a sus
+      instituciones publicadoras.
     </div>
   </div>
 
