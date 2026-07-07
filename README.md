@@ -61,7 +61,6 @@ Frontmatter mínimo:
 ---
 nombre: "Mi catastro"
 categoria: ambiental      # mineria | ambiental | riesgo | hidrico | social | admin | energia
-icono: "🌿"
 estado: activo            # activo | beta | wip
 estadoTexto: "Activo — Mes Año"
 descripcion: "Qué contiene, cobertura, fuente."

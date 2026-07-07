@@ -4,7 +4,6 @@ valoracionIssue: 3
 score: 0
 tipo: oficial
 categoria: admin
-icono: "🌐"
 estado: activo
 estadoTexto: "Activo"
 descripcion: "Infraestructura de Datos Geoespaciales de Chile. Portal oficial del Estado con cientos de capas temáticas descargables y servicios OGC (WMS/WFS) de ministerios e instituciones públicas."

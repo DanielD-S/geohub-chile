@@ -4,7 +4,6 @@ valoracionIssue: 4
 score: 0
 tipo: oficial
 categoria: admin
-icono: "🗺️"
 estado: activo
 estadoTexto: "Activo"
 descripcion: "Shapefiles oficiales de comunas (346) y regiones (16) de Chile. Sistema de referencia SIRGAS 2000. Publicados por la Biblioteca del Congreso Nacional, base indispensable para cualquier análisis territorial."

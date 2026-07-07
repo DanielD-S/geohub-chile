@@ -45,7 +45,10 @@ const iniciativas = defineCollection({
     categoriaExtra: z
       .object({ label: z.string(), color: z.string() })
       .optional(),
-    icono: z.string(),
+    // Ícono legacy (emoji). Ya no se renderiza — IniciativaCard usa SVGs
+    // outline por slug/categoría. Se acepta opcionalmente para no romper
+    // archivos antiguos, pero no agregarlo en iniciativas nuevas.
+    icono: z.string().optional(),
     iconoBg: z.string().optional(), // p.ej. "rgba(245,197,24,0.12)"
     estado: z.enum(['activo', 'beta', 'wip']),
     estadoTexto: z.string(),

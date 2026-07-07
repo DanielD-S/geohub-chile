@@ -2,6 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
+import Icon from '../../components/Icon.astro';
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
@@ -11,7 +12,7 @@ const herramientas = [
     titulo: 'Visor de archivos geográficos',
     desc:
       'Visualiza al instante un archivo .geojson, .kml, .kmz o shapefile (.zip). Soporta drag & drop, muestra propiedades y exporta a GeoJSON normalizado. Todo en tu navegador, nada se sube a un servidor.',
-    icono: '🗺️',
+    icono: 'mapa',
     estado: 'activo',
     estadoTexto: 'Disponible',
     soporta: ['.geojson', '.kml', '.kmz', '.zip (SHP)'],
@@ -21,7 +22,7 @@ const herramientas = [
     titulo: 'Kit Webmap descargable',
     desc:
       'Sube tu capa, elige basemap y título, y descarga un mapa listo para publicar — como .html autocontenido o como .zip editable con README para GitHub Pages / Netlify. Sin servidor, sin cuenta.',
-    icono: '📦',
+    icono: 'paquete',
     estado: 'activo',
     estadoTexto: 'Disponible',
     soporta: ['.geojson', '.kml', '.kmz', '.zip (SHP)'],
@@ -31,7 +32,7 @@ const herramientas = [
     titulo: '¿En qué comuna estoy?',
     desc:
       'Pega una coordenada o sube un CSV con lat/lng — devuelve comuna, provincia y región para cada punto. Cruza contra los límites oficiales de BCN. Hasta 5.000 puntos.',
-    icono: '📍',
+    icono: 'pin',
     estado: 'activo',
     estadoTexto: 'Disponible',
     soporta: ['lat,lng', 'CSV'],
@@ -41,7 +42,7 @@ const herramientas = [
     titulo: 'Monitor de geoservicios chilenos',
     desc:
       'Semáforo diario de los servicios de mapas públicos (SERNAGEOMIN, DGA, MMA, SUBPESCA, IDE Minagri, DMC y más): ¿responde, habla el protocolo, entrega datos? Incluye tester para probar cualquier endpoint propio.',
-    icono: '📡',
+    icono: 'actividad',
     estado: 'activo',
     estadoTexto: 'Disponible',
     soporta: ['WMS', 'WFS', 'ArcGIS REST', 'GeoJSON'],
@@ -51,7 +52,7 @@ const herramientas = [
     titulo: 'Conversor de coordenadas chilenas',
     desc:
       'Convierte entre WGS84, SIRGAS 2000, UTM 18S/19S y PSAD56 — los sistemas usados por organismos chilenos.',
-    icono: '🧭',
+    icono: 'brujula',
     estado: 'wip',
     estadoTexto: 'Próximamente',
     soporta: ['Coord. única', 'CSV batch'],
@@ -61,7 +62,7 @@ const herramientas = [
     titulo: '¿Qué hay en este punto?',
     desc:
       'Pega una coordenada o sube un polígono — cruza automáticamente con catastro minero, áreas protegidas, cuencas y bosque nativo. El diferenciador del hub.',
-    icono: '🔍',
+    icono: 'buscar',
     estado: 'wip',
     estadoTexto: 'Próximamente',
     soporta: ['lat,lng', 'KMZ', 'GeoJSON'],
@@ -101,7 +102,7 @@ const herramientas = [
             href={h.estado === 'activo' ? href : undefined}
             class={`herr-card herr-${h.estado}`}
           >
-            <div class="herr-icono">{h.icono}</div>
+            <div class="herr-icono"><Icon name={h.icono} size={26} /></div>
             <div class="herr-body">
               <div class="herr-meta">
                 <span class={`herr-estado herr-estado-${h.estado}`}>
@@ -117,7 +118,7 @@ const herramientas = [
             {h.estado === 'activo' ? (
               <div class="herr-cta">Abrir →</div>
             ) : (
-              <div class="herr-cta herr-cta-wip">🚧 En desarrollo · pronto disponible</div>
+              <div class="herr-cta herr-cta-wip">En desarrollo · pronto disponible</div>
             )}
           </Tag>
         );

@@ -3,7 +3,6 @@ nombre: "Catastro Ambiental Chile"
 valoracionIssue: 1
 score: 0
 categoria: ambiental
-icono: "🌿"
 estado: activo
 estadoTexto: "Activo — Jun 2026"
 descripcion: "25 capas ambientales y territoriales en GeoJSON. Cubre áreas protegidas, recursos hídricos, ecosistemas, patrimonio cultural, infraestructura y proyectos evaluados ambientalmente. Fuente: SEA."

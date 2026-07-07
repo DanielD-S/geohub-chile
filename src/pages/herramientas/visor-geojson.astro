@@ -2,6 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
+import Icon from '../../components/Icon.astro';
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 ---
@@ -28,7 +29,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     </div>
 
     <div class="herr-hdr">
-      <h1>🗺️ Visor de archivos geográficos</h1>
+      <h1><Icon name="mapa" size={24} /> Visor de archivos geográficos</h1>
       <p>
         Carga un archivo <code>.geojson</code>, <code>.kml</code>,
         <code>.kmz</code> o un shapefile comprimido (<code>.zip</code>) y
@@ -42,7 +43,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     <label class="dropzone" id="dropzone">
       <input type="file" id="file-input" accept=".geojson,.json,.kml,.kmz,.zip" />
       <div class="dz-main">
-        <div class="dz-icon">📂</div>
+        <div class="dz-icon"><Icon name="carpeta" size={30} /></div>
         <div class="dz-text">
           Arrastra un archivo aquí o <strong>haz clic para elegir</strong>
         </div>
@@ -113,8 +114,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
           <div class="r-bounds"><span class="r-lbl">Bounds (WGS84)</span><span class="r-val" id="r-bounds">—</span></div>
         </div>
         <div class="resumen-actions">
-          <button id="btn-descargar" class="btn-tool">⬇ Descargar como GeoJSON</button>
-          <button id="btn-copiar" class="btn-tool">📋 Copiar GeoJSON</button>
+          <button id="btn-descargar" class="btn-tool"><Icon name="descargar" size={13} /> Descargar como GeoJSON</button>
+          <button id="btn-copiar" class="btn-tool"><Icon name="copiar" size={13} /> Copiar GeoJSON</button>
           <button id="btn-limpiar" class="btn-tool btn-tool-ghost">✕ Limpiar</button>
         </div>
       </div>
@@ -122,7 +123,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       <div id="mapa-canvas" class="mapa-tool"></div>
 
       <details class="props-wrap" open>
-        <summary>📋 Tabla de propiedades (primeros 50 features)</summary>
+        <summary><Icon name="tabla" size={13} /> Tabla de propiedades (primeros 50 features)</summary>
         <div id="tabla-wrap" class="tabla-wrap"></div>
       </details>
     </div>
@@ -181,7 +182,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     background: var(--verde-glow);
   }
   .dropzone input { display: none; }
-  .dz-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+  .dz-icon { color: var(--t3); margin-bottom: 0.5rem; }
   .dz-text { font-size: 14px; color: var(--t1); }
   .dz-text strong { color: var(--verde); }
   .dz-formats { font-size: 11.5px; color: var(--t3); margin-top: 0.5rem; font-family: var(--mono); }
@@ -525,7 +526,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       }
       const parts = [`<div class="status-title">${escapar(title)}</div>`];
       if (body) parts.push(`<div class="status-body">${escapar(body)}</div>`);
-      if (hint) parts.push(`<div class="status-hint">💡 ${escapar(hint)}</div>`);
+      if (hint) parts.push(`<div class="status-hint">${escapar(hint)}</div>`);
       status.innerHTML = parts.join('');
       status.className = 'status' + (type ? ' ' + type : '');
     }
@@ -873,7 +874,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         setStatus({
           title: 'No pude copiar al portapapeles.',
           body: 'Tu navegador bloqueó el acceso al portapapeles. Esto suele pasar en pestañas en modo privado o cuando el sitio no se ve como "seguro".',
-          hint: 'Usa el botón "⬇ Descargar como GeoJSON" como alternativa — funciona en cualquier navegador.',
+          hint: 'Usa el botón "Descargar como GeoJSON" como alternativa — funciona en cualquier navegador.',
           type: 'error',
         });
       }
