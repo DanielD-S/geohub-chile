@@ -18,7 +18,8 @@ const accionSchema = z.object({
 const archivoSchema = z.object({
   nombre: z.string(),
   size: z.string(),
-  url: z.string().url(),
+  // URL absoluta o ruta relativa al sitio (p.ej. herramientas con deep-link)
+  url: urlOrPath,
 });
 
 const grupoArchivosSchema = z.object({

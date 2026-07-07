@@ -22,7 +22,7 @@ archivos:
   grupos:
     - titulo: "Servicio ArcGIS (FeatureServer)"
       items:
-        - { nombre: "Campamentos vigentes (capa 2)", size: "puntos", url: "https://services3.arcgis.com/cTnMkBRk4HWkUCRo/arcgis/rest/services/Datos_Compamentos/FeatureServer/2" }
-        - { nombre: "Histórico (capa 0)", size: "series", url: "https://services3.arcgis.com/cTnMkBRk4HWkUCRo/arcgis/rest/services/Datos_Compamentos/FeatureServer/0" }
-        - { nombre: "Totales por región (capa 1)", size: "resumen", url: "https://services3.arcgis.com/cTnMkBRk4HWkUCRo/arcgis/rest/services/Datos_Compamentos/FeatureServer/1" }
+        - { nombre: "Campamentos vigentes (capa 2)", size: "puntos", url: "./herramientas/descargador-arcgis?url=https://services3.arcgis.com/cTnMkBRk4HWkUCRo/arcgis/rest/services/Datos_Compamentos/FeatureServer/2" }
+        - { nombre: "Histórico (capa 0)", size: "series", url: "./herramientas/descargador-arcgis?url=https://services3.arcgis.com/cTnMkBRk4HWkUCRo/arcgis/rest/services/Datos_Compamentos/FeatureServer/0" }
+        - { nombre: "Totales por región (capa 1)", size: "resumen", url: "./herramientas/descargador-arcgis?url=https://services3.arcgis.com/cTnMkBRk4HWkUCRo/arcgis/rest/services/Datos_Compamentos/FeatureServer/1" }
 ---

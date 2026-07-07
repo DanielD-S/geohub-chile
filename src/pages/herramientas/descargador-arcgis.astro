@@ -1,0 +1,318 @@
+---
+import Base from '../../layouts/Base.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import Icon from '../../components/Icon.astro';
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+
+<Base
+  title="Descargador de capas ArcGIS · Herramientas · GeoHub Chile"
+  description="Pega la URL de un servicio ArcGIS REST (FeatureServer/MapServer) y descarga cualquiera de sus capas como GeoJSON, sin saber nada de APIs. 100% client-side."
+>
+  <Header />
+
+  <div class="herr-page">
+    <div class="herr-back">
+      <a href={`${base}/herramientas/`}>← Herramientas</a>
+    </div>
+
+    <div class="herr-hdr">
+      <h1><Icon name="descargar" size={24} /> Descargador de capas ArcGIS</h1>
+      <p>
+        Muchos organismos chilenos (MINVU, SERNAGEOMIN, DGA, SUBPESCA…) publican sus datos
+        como <strong>servicios ArcGIS REST</strong> — potentes, pero crípticos si no eres
+        usuario SIG. Pega aquí la URL de un <code>FeatureServer</code> o <code>MapServer</code>
+        y te mostramos sus capas con nombre y tipo, listas para
+        <strong>descargar como GeoJSON</strong> o copiar la URL para QGIS.
+        Todo ocurre en tu navegador.
+      </p>
+    </div>
+
+    <div class="config-card">
+      <div class="config-step"><strong>1.</strong> Servicio</div>
+      <div class="form-row">
+        <input
+          id="svc-url"
+          type="url"
+          placeholder="https://services3.arcgis.com/.../NombreServicio/FeatureServer"
+          spellcheck="false"
+        />
+        <button id="btn-cargar" class="btn-primary" type="button">Cargar servicio</button>
+      </div>
+    </div>
+
+    <div id="status" class="status"></div>
+
+    <div class="config-card" id="capas-card" style="display:none">
+      <div class="config-step">
+        <strong>2.</strong> Capas (<span id="capas-n">0</span>)
+        <span class="svc-nombre" id="svc-nombre"></span>
+      </div>
+      <div id="capas-lista"></div>
+    </div>
+
+    <div class="footer-attr">
+      <strong>¿Prefieres trabajar en QGIS?</strong> No necesitas descargar: en QGIS ve a
+      <em>Capa → Añadir capa → Añadir capa ArcGIS REST Server</em>, crea una conexión nueva y
+      pega la URL del servicio — las capas aparecen igual que aquí, siempre actualizadas.
+      Las descargas GeoJSON vienen en WGS84 (EPSG:4326). Los datos pertenecen a sus
+      instituciones publicadoras.
+    </div>
+  </div>
+
+  <Footer />
+</Base>
+
+<style>
+  .herr-page { max-width: 1280px; margin: 0 auto; padding: 1.5rem 1.5rem 4rem; }
+  .herr-back a {
+    font-family: var(--mono); font-size: 11px;
+    text-transform: uppercase; letter-spacing: 1px;
+    color: var(--t3); text-decoration: none;
+    transition: color 0.15s;
+  }
+  .herr-back a:hover { color: var(--verde); }
+  .herr-hdr { margin: 1.5rem 0 1.25rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--border); }
+  .herr-hdr h1 { font-size: 1.6rem; font-weight: 700; color: var(--t1); margin-bottom: 0.5rem; letter-spacing: -0.015em; }
+  .herr-hdr p { color: var(--t2); font-size: 13.5px; line-height: 1.7; max-width: 82ch; }
+  .herr-hdr code { background: var(--surface2); border: 1px solid var(--border); padding: 1px 5px; border-radius: 4px; font-family: var(--mono); font-size: 11.5px; color: var(--verde); }
+  .herr-hdr strong { color: var(--t1); }
+
+  .config-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 1rem 1.25rem; margin-bottom: 1rem; }
+  .config-step { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--t3); margin-bottom: 0.85rem; display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+  .config-step strong { color: var(--verde); }
+  .svc-nombre { color: var(--t2); text-transform: none; letter-spacing: 0; font-size: 11.5px; }
+
+  .form-row { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
+  #svc-url {
+    flex: 1; min-width: 280px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 5px;
+    padding: 0.5rem 0.7rem;
+    color: var(--t1);
+    font-family: var(--mono); font-size: 12px;
+  }
+  #svc-url:focus { outline: none; border-color: var(--verde); }
+  .btn-primary {
+    background: var(--verde); color: #06121a; border: none;
+    padding: 0.5rem 1rem; border-radius: 6px;
+    font-family: var(--sans); font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .btn-primary:hover { background: #5ce29c; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .status:empty { display: none; }
+  .status {
+    padding: 0.85rem 1rem;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-left: 3px solid var(--border2);
+    border-radius: var(--r); margin: 1rem 0;
+    font-size: 12.5px; color: var(--t2); line-height: 1.6;
+  }
+  .status.error { background: rgba(230,57,70,0.06); border-color: rgba(230,57,70,0.2); border-left-color: #e63946; color: #d9b4b8; }
+  .status.success { background: rgba(61,214,140,0.05); border-color: var(--verde-dim); border-left-color: var(--verde); }
+
+  .footer-attr {
+    margin-top: 2rem; padding: 0.85rem 1rem;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r);
+    color: var(--t3); font-size: 11.5px; line-height: 1.7;
+  }
+  .footer-attr strong { color: var(--t2); }
+  .footer-attr em { color: var(--verde); font-style: normal; }
+</style>
+
+<!-- Global porque las filas de capas se inyectan con JS y los estilos
+     scoped de Astro no alcanzan a los nodos creados dinámicamente. -->
+<style is:global>
+  #capas-lista .capa-fila {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 8px 4px; border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  #capas-lista .capa-fila:last-child { border-bottom: none; }
+  #capas-lista .capa-nombre { color: var(--t1); font-size: 13px; flex: 1; min-width: 200px; }
+  #capas-lista .capa-tipo {
+    font-family: var(--mono); font-size: 10px;
+    padding: 2px 7px; border-radius: 4px;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--t2); letter-spacing: 0.5px; white-space: nowrap;
+  }
+  #capas-lista .capa-btn {
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--t1); padding: 5px 12px;
+    border-radius: 6px;
+    font-family: var(--sans); font-size: 12px; font-weight: 500;
+    cursor: pointer; transition: all 0.15s;
+    white-space: nowrap;
+  }
+  #capas-lista .capa-btn:hover { border-color: var(--verde-dim); color: var(--verde); background: var(--verde-glow); }
+  #capas-lista .capa-btn:disabled { opacity: 0.6; cursor: wait; }
+</style>
+
+<script is:inline>
+  (() => {
+    const $ = (id) => document.getElementById(id);
+    const urlInput = $('svc-url');
+    const btnCargar = $('btn-cargar');
+    const status = $('status');
+    const capasCard = $('capas-card');
+    const capasLista = $('capas-lista');
+
+    const TIMEOUT_MS = 20000;
+    const MAX_FEATURES = 300000;
+
+    function escapar(s) {
+      return String(s).replace(/[&<>"']/g, (m) =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])
+      );
+    }
+    function setStatus(msg, clase) {
+      status.textContent = msg || '';
+      status.className = 'status' + (clase ? ' ' + clase : '');
+    }
+    async function fetchTimeout(url) {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+      try {
+        const r = await fetch(url, { signal: ctrl.signal });
+        return await r.json();
+      } finally {
+        clearTimeout(t);
+      }
+    }
+
+    const TIPO_GEOM = {
+      esriGeometryPoint: 'Puntos',
+      esriGeometryMultipoint: 'Puntos',
+      esriGeometryPolyline: 'Líneas',
+      esriGeometryPolygon: 'Polígonos',
+    };
+
+    function slug(s) {
+      return String(s).normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '').toLowerCase() || 'capa';
+    }
+
+    async function cargarServicio(rawUrl) {
+      let url = rawUrl.trim().replace(/\?.*$/, '').replace(/\/+$/, '');
+      if (!/^https?:\/\//i.test(url)) {
+        setStatus('Ingresa una URL válida (debe empezar con http:// o https://).', 'error');
+        return;
+      }
+      btnCargar.disabled = true;
+      btnCargar.textContent = 'Cargando…';
+      setStatus('Consultando el servicio…');
+      try {
+        const meta = await fetchTimeout(url + '?f=json');
+        if (meta.error) throw new Error(meta.error.message || 'Error del servidor ArcGIS');
+        let capas = [];
+        if (Array.isArray(meta.layers) && meta.layers.length) {
+          capas = meta.layers.map((l) => ({ id: l.id, nombre: l.name, geom: l.geometryType, url: url + '/' + l.id }));
+        } else if (meta.name != null && meta.type) {
+          // URL de una capa individual
+          capas = [{ id: meta.id ?? 0, nombre: meta.name, geom: meta.geometryType, url }];
+        } else {
+          throw new Error('La URL responde pero no parece un FeatureServer/MapServer ni una capa.');
+        }
+        renderCapas(capas, url);
+        setStatus('');
+      } catch (e) {
+        capasCard.style.display = 'none';
+        if (e.name === 'AbortError') {
+          setStatus('El servicio no respondió en ' + TIMEOUT_MS / 1000 + ' segundos.', 'error');
+        } else if (e instanceof TypeError) {
+          setStatus('No se pudo consultar desde el navegador (posible bloqueo CORS del servidor). El servicio puede funcionar igual en QGIS con la misma URL.', 'error');
+        } else {
+          setStatus('No se pudo leer el servicio: ' + (e.message || e), 'error');
+        }
+      } finally {
+        btnCargar.disabled = false;
+        btnCargar.textContent = 'Cargar servicio';
+      }
+    }
+
+    function renderCapas(capas, svcUrl) {
+      $('capas-n').textContent = capas.length;
+      $('svc-nombre').textContent = svcUrl.split('/rest/services/')[1] || svcUrl;
+      capasLista.innerHTML = capas.map((c, i) => `
+        <div class="capa-fila">
+          <span class="capa-nombre">${escapar(c.nombre)}</span>
+          <span class="capa-tipo">${TIPO_GEOM[c.geom] || 'Tabla'}</span>
+          <button class="capa-btn" data-dl="${i}" type="button">Descargar GeoJSON</button>
+          <button class="capa-btn" data-copy="${i}" type="button">Copiar URL</button>
+        </div>`).join('');
+      capasCard.style.display = 'block';
+
+      capasLista.querySelectorAll('[data-dl]').forEach((btn) => {
+        btn.addEventListener('click', () => descargar(capas[+btn.dataset.dl], btn));
+      });
+      capasLista.querySelectorAll('[data-copy]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(capas[+btn.dataset.copy].url);
+            const orig = btn.textContent;
+            btn.textContent = '✓ Copiada';
+            setTimeout(() => (btn.textContent = orig), 1500);
+          } catch {
+            setStatus('No se pudo copiar al portapapeles.', 'error');
+          }
+        });
+      });
+    }
+
+    async function descargar(capa, btn) {
+      btn.disabled = true;
+      const orig = btn.textContent;
+      try {
+        const meta = await fetchTimeout(capa.url + '?f=json');
+        const pagina = Math.min(meta.maxRecordCount || 1000, 2000);
+        const features = [];
+        let offset = 0;
+        while (true) {
+          btn.textContent = 'Descargando… ' + features.length.toLocaleString('es-CL');
+          const q = capa.url + '/query?where=1%3D1&outFields=*&resultOffset=' + offset +
+            '&resultRecordCount=' + pagina + '&f=geojson';
+          const j = await fetchTimeout(q);
+          if (j.error) throw new Error(j.error.message || 'Error en la consulta');
+          const lote = j.features || [];
+          features.push(...lote);
+          if (features.length > MAX_FEATURES) throw new Error('La capa supera los ' + MAX_FEATURES.toLocaleString('es-CL') + ' registros — usa QGIS con la URL del servicio para trabajarla.');
+          if (lote.length < pagina) break;
+          offset += lote.length;
+        }
+        const fc = { type: 'FeatureCollection', features };
+        const blob = new Blob([JSON.stringify(fc)], { type: 'application/geo+json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = slug(capa.nombre) + '.geojson';
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+        setStatus('✓ "' + capa.nombre + '" descargada: ' + features.length.toLocaleString('es-CL') + ' elementos.', 'success');
+      } catch (e) {
+        if (e.name === 'AbortError') setStatus('La descarga excedió el tiempo de espera — la capa puede ser muy pesada. Prueba con QGIS y la URL del servicio.', 'error');
+        else if (e instanceof TypeError) setStatus('No se pudo descargar desde el navegador (posible bloqueo CORS). Usa QGIS con la URL de la capa.', 'error');
+        else setStatus('Error al descargar "' + capa.nombre + '": ' + (e.message || e), 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = orig;
+      }
+    }
+
+    btnCargar.addEventListener('click', () => cargarServicio(urlInput.value));
+    urlInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') cargarServicio(urlInput.value);
+    });
+
+    // Deep-link: /herramientas/descargador-arcgis?url=https://...
+    const pre = new URLSearchParams(location.search).get('url');
+    if (pre) {
+      urlInput.value = pre;
+      cargarServicio(pre);
+    }
+  })();
+</script>
