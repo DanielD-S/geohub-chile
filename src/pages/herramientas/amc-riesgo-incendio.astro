@@ -1,0 +1,219 @@
+---
+import Base from '../../layouts/Base.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import Icon from '../../components/Icon.astro';
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+const criterios = [
+  {
+    n: 1,
+    nombre: 'Combustible vegetal',
+    porque: 'El factor dominante: plantaciones de pino/eucalipto y matorral seco arden distinto que bosque nativo húmedo o cultivo. Se reclasifica el uso de suelo por inflamabilidad.',
+    fuente: 'Catastro de Uso de Suelo y Vegetación CONAF/CIREN',
+    fuenteUrl: 'https://sit.conaf.cl',
+    peso: '30%',
+  },
+  {
+    n: 2,
+    nombre: 'Pendiente',
+    porque: 'El fuego sube laderas precalentando el combustible — a mayor pendiente, mayor velocidad de propagación (0° → 0 · ≥30° → 1).',
+    fuente: 'DEM gratuito: ALOS PALSAR 12,5 m o SRTM 30 m',
+    fuenteUrl: 'https://search.asf.alaska.edu',
+    peso: '15%',
+  },
+  {
+    n: 3,
+    nombre: 'Orientación de ladera',
+    porque: 'En el hemisferio sur las exposiciones norte reciben más radiación → vegetación más seca. Normalización por coseno (N → 1 · S → 0).',
+    fuente: 'Derivada del mismo DEM',
+    fuenteUrl: '',
+    peso: '10%',
+  },
+  {
+    n: 4,
+    nombre: 'Clima (opcional)',
+    porque: 'Temperatura máxima estival u otro proxy de sequedad del combustible. Si no se entrega, su peso se redistribuye.',
+    fuente: 'ARCLIM / CR2 (rásters descargables)',
+    fuenteUrl: 'https://arclim.mma.gob.cl',
+    peso: '12%',
+  },
+  {
+    n: 5,
+    nombre: 'Viento (opcional)',
+    porque: 'Principal propagador de los grandes incendios. Opcional porque su descarga requiere registro; sin él, el peso se redistribuye.',
+    fuente: 'Explorador Eólico (Min. Energía / U. de Chile)',
+    fuenteUrl: 'https://eolico.minenergia.cl',
+    peso: '8%',
+  },
+  {
+    n: 6,
+    nombre: 'Distancia a caminos',
+    porque: 'En Chile la enorme mayoría de las igniciones son antrópicas: la ocurrencia se concentra junto a rutas (0 m → 1 · ≥2 km → 0).',
+    fuente: 'OpenStreetMap (descarga libre)',
+    fuenteUrl: 'https://download.geofabrik.de/south-america/chile.html',
+    peso: '12%',
+  },
+  {
+    n: 7,
+    nombre: 'Interfaz urbano-rural',
+    porque: 'Donde ciudad y vegetación se tocan: ignición antrópica + exposición (0 m → 1 · ≥3 km → 0).',
+    fuente: 'Límites urbanos MINVU (LU_IPT_CHILE, en GeoHub)',
+    fuenteUrl: './descargador-arcgis?url=https://services3.arcgis.com/cTnMkBRk4HWkUCRo/arcgis/rest/services/LU_IPT_CHILE/FeatureServer',
+    peso: '13%',
+  },
+];
+---
+
+<Base
+  title="AMC Riesgo de Incendio · Herramientas · GeoHub Chile"
+  description="Script QGIS de análisis multicriterio para calcular susceptibilidad a incendios forestales: 7 criterios con fuentes públicas chilenas, pesos editables, validación con focos históricos NASA FIRMS y reporte de metodología."
+>
+  <Header />
+
+  <div class="herr-page">
+    <div class="herr-back">
+      <a href={`${base}/herramientas/`}>← Herramientas</a>
+    </div>
+
+    <div class="herr-hdr">
+      <h1><Icon name="fuego" size={24} /> AMC — Susceptibilidad a incendios forestales</h1>
+      <p>
+        Script de <strong>Processing para QGIS 3.28+</strong> que automatiza un análisis
+        multicriterio completo: normaliza 5-7 criterios, aplica suma lineal ponderada y
+        entrega un <strong>ráster de susceptibilidad 0-100</strong>, la clasificación en
+        5 clases y un <strong>reporte HTML con la metodología</strong> (pesos, normalizaciones
+        y validación) listo para anexar a un informe. Todas las variables se alimentan con
+        <strong>datos públicos chilenos gratuitos</strong>.
+      </p>
+      <div class="dl-row">
+        <a class="btn-primary" href={`${base}/scripts/amc_riesgo_incendio.py`} download>
+          <Icon name="descargar" size={14} /> Descargar script (.py)
+        </a>
+        <span class="dl-meta">QGIS 3.28+ · MIT · un solo archivo</span>
+      </div>
+    </div>
+
+    <div class="sec-title-mini">Criterios, fuentes y pesos por defecto</div>
+    <div class="tabla-card">
+      <div class="tabla-wrap">
+        <table>
+          <thead>
+            <tr><th>#</th><th>Criterio</th><th>Por qué importa</th><th>Fuente de datos ($0)</th><th>Peso</th></tr>
+          </thead>
+          <tbody>
+            {criterios.map((c) => (
+              <tr>
+                <td class="c-num">{c.n}</td>
+                <td class="c-nombre">{c.nombre}</td>
+                <td class="c-porque">{c.porque}</td>
+                <td>
+                  {c.fuenteUrl
+                    ? <a href={c.fuenteUrl} target="_blank" rel="noopener">{c.fuente} ↗</a>
+                    : c.fuente}
+                </td>
+                <td class="c-num">{c.peso}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="config-card">
+        <div class="config-step"><strong>1.</strong> Instalación</div>
+        <ol class="pasos">
+          <li>Descarga el <code>.py</code> con el botón de arriba.</li>
+          <li>En QGIS: <em>Procesos → Caja de herramientas → Scripts → Añadir script a la caja de herramientas…</em></li>
+          <li>Aparece bajo el grupo <strong>GeoHub Chile</strong>.</li>
+        </ol>
+      </div>
+      <div class="config-card">
+        <div class="config-step"><strong>2.</strong> Uso</div>
+        <ol class="pasos">
+          <li>Área de estudio en <strong>CRS proyectado en metros</strong> (EPSG:32718/32719).</li>
+          <li>Entrega DEM, uso de suelo (con su campo de categoría), caminos y zonas pobladas. Clima y viento son opcionales.</li>
+          <li>Ajusta los pesos si quieres — se renormalizan solos.</li>
+          <li>Opcional: agrega focos históricos (<a href="https://firms.modaps.eosdis.nasa.gov/country/" target="_blank" rel="noopener">NASA FIRMS ↗</a>) y el reporte te dice qué % cae en las clases Alta/Muy alta — tu control de calidad.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="footer-attr">
+      <strong>Alcance:</strong> el resultado es <em>susceptibilidad estructural</em> del
+      territorio (qué zonas tienden a arder por sus condiciones), no el riesgo operacional
+      de un día concreto, que depende del clima en tiempo real. No reemplaza los productos
+      oficiales de CONAF/SENAPRED. La reclasificación de combustible usa las categorías del
+      Catastro CONAF y reporta cualquier categoría no reconocida. Pesos por defecto basados
+      en literatura AMC para clima mediterráneo — edítalos y defiende los tuyos: el reporte
+      documenta exactamente qué se usó.
+    </div>
+  </div>
+
+  <Footer />
+</Base>
+
+<style>
+  .herr-page { max-width: 1280px; margin: 0 auto; padding: 1.5rem 1.5rem 4rem; }
+  .herr-back a {
+    font-family: var(--mono); font-size: 11px;
+    text-transform: uppercase; letter-spacing: 1px;
+    color: var(--t3); text-decoration: none;
+    transition: color 0.15s;
+  }
+  .herr-back a:hover { color: var(--verde); }
+  .herr-hdr { margin: 1.5rem 0 1.25rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--border); }
+  .herr-hdr h1 { font-size: 1.6rem; font-weight: 700; color: var(--t1); margin-bottom: 0.5rem; letter-spacing: -0.015em; }
+  .herr-hdr p { color: var(--t2); font-size: 13.5px; line-height: 1.7; max-width: 82ch; }
+  .herr-hdr strong { color: var(--t1); }
+
+  .dl-row { display: flex; align-items: center; gap: 0.85rem; margin-top: 1rem; flex-wrap: wrap; }
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--verde); color: #06121a; border: none;
+    padding: 0.55rem 1.1rem; border-radius: 6px;
+    font-family: var(--sans); font-size: 13px; font-weight: 600;
+    cursor: pointer; text-decoration: none; transition: all 0.15s;
+  }
+  .btn-primary:hover { background: #5ce29c; }
+  .dl-meta { font-family: var(--mono); font-size: 10.5px; color: var(--t3); }
+
+  .sec-title-mini {
+    font-family: var(--mono); font-size: 11px;
+    text-transform: uppercase; letter-spacing: 1.2px;
+    color: var(--t3); margin: 1.5rem 0 0.5rem;
+  }
+  .tabla-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); }
+  .tabla-wrap { overflow-x: auto; }
+  .tabla-wrap table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .tabla-wrap th, .tabla-wrap td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); color: var(--t2); vertical-align: top; }
+  .tabla-wrap tr:last-child td { border-bottom: none; }
+  .tabla-wrap th { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--t3); font-weight: 600; white-space: nowrap; }
+  .tabla-wrap a { color: var(--verde); text-decoration: none; }
+  .tabla-wrap a:hover { text-decoration: underline; }
+  .c-nombre { color: var(--t1); font-weight: 500; white-space: nowrap; }
+  .c-num { font-family: var(--mono); font-size: 11.5px; white-space: nowrap; }
+  .c-porque { max-width: 42ch; line-height: 1.55; }
+
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+  .config-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 1rem 1.25rem; }
+  .config-step { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--t3); margin-bottom: 0.85rem; }
+  .config-step strong { color: var(--verde); margin-right: 4px; }
+  .pasos { margin: 0; padding-left: 1.2rem; color: var(--t2); font-size: 12.5px; line-height: 1.8; }
+  .pasos strong { color: var(--t1); }
+  .pasos em { color: var(--verde); font-style: normal; }
+  .pasos code { background: var(--surface2); border: 1px solid var(--border); padding: 0 4px; border-radius: 3px; font-family: var(--mono); font-size: 11px; color: var(--verde); }
+  .pasos a { color: var(--verde); text-decoration: none; }
+  .pasos a:hover { text-decoration: underline; }
+
+  .footer-attr {
+    margin-top: 2rem; padding: 0.85rem 1rem;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r);
+    color: var(--t3); font-size: 11.5px; line-height: 1.7;
+  }
+  .footer-attr strong { color: var(--t2); }
+  .footer-attr em { color: var(--t2); font-style: italic; }
+</style>
