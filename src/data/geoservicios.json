@@ -122,6 +122,30 @@
       "web": "https://ide.minagri.gob.cl"
     },
     {
+      "id": "minvu-prc-valparaiso",
+      "institucion": "MINVU",
+      "nombre": "PRC Valparaíso (planes reguladores)",
+      "tipo": "arcgis",
+      "url": "https://services3.arcgis.com/cTnMkBRk4HWkUCRo/arcgis/rest/services/05_PRC_Valparaiso/FeatureServer/0",
+      "web": "https://ide.minvu.cl"
+    },
+    {
+      "id": "minvu-limites-urbanos",
+      "institucion": "MINVU",
+      "nombre": "Límites urbanos IPT (Chile)",
+      "tipo": "arcgis",
+      "url": "https://services3.arcgis.com/cTnMkBRk4HWkUCRo/arcgis/rest/services/LU_IPT_CHILE/FeatureServer/0",
+      "web": "https://ide.minvu.cl"
+    },
+    {
+      "id": "minvu-campamentos",
+      "institucion": "MINVU",
+      "nombre": "Catastro de campamentos",
+      "tipo": "arcgis",
+      "url": "https://services3.arcgis.com/cTnMkBRk4HWkUCRo/arcgis/rest/services/Datos_Compamentos/FeatureServer/2",
+      "web": "https://ide.minvu.cl"
+    },
+    {
       "id": "dmc-ema-resumen",
       "institucion": "DMC",
       "nombre": "Resumen diario estaciones EMA",
