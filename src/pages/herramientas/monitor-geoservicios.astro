@@ -1,0 +1,467 @@
+---
+import Base from '../../layouts/Base.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import catalogo from '../../data/geoservicios.json';
+import estado from '../../data/geoservicios-estado.json';
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+type Semaforo = 'ok' | 'warn' | 'down';
+type Resultado = {
+  estado: Semaforo;
+  detalle: string;
+  latenciaMs?: number;
+  registros?: number;
+  capas?: number;
+  lastEdit?: string;
+  historial?: string;
+};
+
+const TIPO_LABEL: Record<string, string> = { arcgis: 'ArcGIS REST', wms: 'WMS', wfs: 'WFS', geojson: 'GeoJSON', json: 'API JSON' };
+
+const resultados = estado.resultados as Record<string, Resultado>;
+const filas = catalogo.servicios.map((s) => ({ ...s, res: resultados[s.id] ?? null }));
+
+const grupos = [...new Map(filas.map((f) => [f.institucion, null])).keys()].map((inst) => ({
+  institucion: inst,
+  servicios: filas.filter((f) => f.institucion === inst),
+}));
+
+const conteo: Record<Semaforo, number> = { ok: 0, warn: 0, down: 0 };
+for (const f of filas) if (f.res) conteo[f.res.estado]++;
+
+const generado = new Date(estado.generado);
+const generadoTxt = generado.toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'America/Santiago' })
+  + ' ' + generado.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Santiago' });
+
+function latenciaTxt(ms: number | undefined) {
+  if (ms == null) return '—';
+  return ms >= 1000 ? (ms / 1000).toFixed(1) + ' s' : ms + ' ms';
+}
+function fmtNum(n: number | undefined) {
+  return n == null ? null : n.toLocaleString('es-CL');
+}
+---
+
+<Base
+  title="Monitor de geoservicios · Herramientas · GeoHub Chile"
+  description="Estado en tiempo casi real de los geoservicios públicos chilenos: WMS, WFS, ArcGIS REST y APIs de SERNAGEOMIN, DGA, MMA, SUBPESCA, IDE Minagri, DMC y más. Incluye tester de endpoints propios."
+>
+  <Header />
+
+  <div class="herr-page">
+    <div class="herr-back">
+      <a href={`${base}/herramientas/`}>← Herramientas</a>
+    </div>
+
+    <div class="herr-hdr">
+      <h1>📡 Monitor de geoservicios chilenos</h1>
+      <p>
+        Estado de los servicios de mapas públicos que usa la comunidad geoespacial chilena:
+        <strong>WMS, WFS, ArcGIS REST y APIs</strong>. Cada servicio se verifica en 3 niveles —
+        ¿responde? · ¿habla el protocolo? · ¿entrega datos? — porque un <code>200 OK</code>
+        no garantiza nada: muchos servicios caídos responden HTML o errores con status 200.
+        La verificación corre automáticamente una vez al día.
+      </p>
+    </div>
+
+    <!-- Resumen -->
+    <div class="resumen-bar">
+      <span class="chip chip-ok">🟢 {conteo.ok} operativos</span>
+      <span class="chip chip-warn">🟡 {conteo.warn} degradados</span>
+      <span class="chip chip-down">🔴 {conteo.down} caídos</span>
+      <span class="resumen-fecha">Última verificación: {generadoTxt} (hora de Chile)</span>
+    </div>
+
+    <!-- Listado -->
+    {grupos.map((g) => (
+      <div class="grupo">
+        <div class="grupo-titulo">{g.institucion}</div>
+        <div class="tabla-card">
+          <div class="tabla-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Servicio</th>
+                  <th>Tipo</th>
+                  <th>Registros / capas</th>
+                  <th>Latencia</th>
+                  <th>Últ. edición datos</th>
+                  <th>Historial</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {g.servicios.map((f) => {
+                  const r = f.res;
+                  const cls = r ? `sem-${r.estado}` : 'sem-na';
+                  const datos = r?.registros != null ? fmtNum(r.registros)
+                    : r?.capas != null ? `${r.capas} capas` : '—';
+                  return (
+                    <tr>
+                      <td><span class={`sem ${cls}`} title={r?.detalle ?? 'Sin datos'}></span></td>
+                      <td class="c-nombre" title={r?.detalle ?? ''}>{f.nombre}</td>
+                      <td><span class="tipo-badge">{TIPO_LABEL[f.tipo] ?? f.tipo}</span></td>
+                      <td class="c-num">{datos}</td>
+                      <td class="c-num">{latenciaTxt(r?.latenciaMs)}</td>
+                      <td class="c-num">{r?.lastEdit ?? '—'}</td>
+                      <td>
+                        <span class="hist">
+                          {(r?.historial ?? '').split('').map((l) => (
+                            <span class={`hist-bar hist-${l}`}></span>
+                          ))}
+                        </span>
+                      </td>
+                      <td class="c-link"><a href={f.url} target="_blank" rel="noopener" title="Abrir endpoint">↗</a></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    ))}
+
+    <!-- Tester de endpoint propio -->
+    <div class="config-card tester">
+      <div class="config-step"><strong>⚡</strong> ¿Tu servicio no está en la lista? Pruébalo aquí</div>
+      <p class="hint">
+        Pega la URL de cualquier servicio <strong>WMS</strong>, <strong>WFS</strong>,
+        <strong>ArcGIS REST</strong> (servicio o capa) o <strong>GeoJSON</strong> y lo verificamos
+        con los mismos 3 niveles, directo desde tu navegador. Nada se envía a ningún servidor.
+      </p>
+      <div class="form-row">
+        <input
+          id="test-url"
+          type="url"
+          placeholder="https://servidor.institucion.cl/arcgis/rest/services/Capa/MapServer/0"
+          spellcheck="false"
+        />
+        <select id="test-tipo">
+          <option value="auto" selected>Detectar tipo</option>
+          <option value="arcgis">ArcGIS REST</option>
+          <option value="wms">WMS</option>
+          <option value="wfs">WFS</option>
+          <option value="geojson">GeoJSON</option>
+          <option value="json">API JSON</option>
+        </select>
+        <button id="btn-testear" class="btn-primary" type="button">▶ Probar</button>
+      </div>
+      <div id="test-resultado" class="test-resultado" style="display:none"></div>
+      <p class="hint hint-proponer">
+        ¿Quieres que lo agreguemos al monitor permanente?
+        <a
+          href="https://github.com/DanielD-S/geohub-chile/issues/new?title=%5BMonitor%5D%20Agregar%20geoservicio&body=URL%20del%20servicio%3A%20%0AInstituci%C3%B3n%3A%20%0ATipo%20(WMS%2FWFS%2FArcGIS%2FGeoJSON)%3A%20"
+          target="_blank"
+          rel="noopener">Propón el servicio con un issue →</a>
+      </p>
+    </div>
+
+    <div class="footer-attr">
+      El semáforo se actualiza una vez al día vía GitHub Actions. 🟢 = responde, habla el
+      protocolo y entrega datos · 🟡 = responde pero con contenido inesperado o lento ·
+      🔴 = sin respuesta o con error. <strong>Historial</strong>: últimas 30 verificaciones
+      registradas (solo se guardan las corridas donde algún estado cambió, más un heartbeat
+      cada 3 días). Los servicios pertenecen a sus instituciones publicadoras.
+    </div>
+  </div>
+
+  <Footer />
+</Base>
+
+<style>
+  .herr-page { max-width: 1280px; margin: 0 auto; padding: 1.5rem 1.5rem 4rem; }
+  .herr-back a {
+    font-family: var(--mono); font-size: 11px;
+    text-transform: uppercase; letter-spacing: 1px;
+    color: var(--t3); text-decoration: none;
+    transition: color 0.15s;
+  }
+  .herr-back a:hover { color: var(--verde); }
+  .herr-hdr { margin: 1.5rem 0 1.25rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--border); }
+  .herr-hdr h1 { font-size: 1.6rem; font-weight: 700; color: var(--t1); margin-bottom: 0.5rem; letter-spacing: -0.015em; }
+  .herr-hdr p { color: var(--t2); font-size: 13.5px; line-height: 1.7; max-width: 82ch; }
+  .herr-hdr code { background: var(--surface2); border: 1px solid var(--border); padding: 1px 5px; border-radius: 4px; font-family: var(--mono); font-size: 11.5px; color: var(--verde); }
+  .herr-hdr strong { color: var(--t1); }
+
+  .resumen-bar {
+    display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+  }
+  .chip {
+    font-family: var(--mono); font-size: 11.5px;
+    padding: 4px 10px; border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--t2);
+  }
+  .chip-ok { border-color: var(--verde-dim); color: var(--verde); }
+  .chip-warn { border-color: rgba(239,108,0,0.4); color: #ef9a3d; }
+  .chip-down { border-color: rgba(230,57,70,0.4); color: #ff8a92; }
+  .resumen-fecha { margin-left: auto; font-family: var(--mono); font-size: 10.5px; color: var(--t3); }
+
+  .grupo { margin-bottom: 1.25rem; }
+  .grupo-titulo {
+    font-family: var(--mono); font-size: 11px;
+    text-transform: uppercase; letter-spacing: 1.2px;
+    color: var(--t3); margin-bottom: 0.5rem;
+  }
+
+  .tabla-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); }
+  .tabla-wrap { overflow-x: auto; }
+  .tabla-wrap table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .tabla-wrap th, .tabla-wrap td { padding: 7px 12px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; color: var(--t2); }
+  .tabla-wrap tr:last-child td { border-bottom: none; }
+  .tabla-wrap th { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--t3); font-weight: 600; }
+  .tabla-wrap tr:hover td { background: var(--surface2); }
+  .c-nombre { color: var(--t1); font-weight: 500; }
+  .c-num { font-family: var(--mono); font-size: 11.5px; }
+  .c-link a { color: var(--t3); text-decoration: none; font-size: 14px; }
+  .c-link a:hover { color: var(--verde); }
+
+  .sem { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+  .sem-ok { background: var(--verde); box-shadow: 0 0 6px var(--verde-dim); }
+  .sem-warn { background: #ef9a3d; box-shadow: 0 0 6px rgba(239,154,61,0.4); }
+  .sem-down { background: #e63946; box-shadow: 0 0 6px rgba(230,57,70,0.4); }
+  .sem-na { background: var(--border2); }
+
+  .tipo-badge {
+    font-family: var(--mono); font-size: 10px;
+    padding: 2px 7px; border-radius: 4px;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--t2); letter-spacing: 0.5px;
+  }
+
+  .hist { display: inline-flex; gap: 2px; align-items: center; }
+  .hist-bar { display: inline-block; width: 5px; height: 14px; border-radius: 1.5px; }
+  .hist-v { background: var(--verde); opacity: 0.75; }
+  .hist-a { background: #ef9a3d; }
+  .hist-r { background: #e63946; }
+
+  .config-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 1rem 1.25rem; }
+  .tester { margin-top: 2rem; }
+  .config-step { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--t3); margin-bottom: 0.85rem; }
+  .config-step strong { color: var(--verde); margin-right: 4px; }
+  .hint { color: var(--t2); font-size: 12px; line-height: 1.6; margin: 0 0 0.6rem; max-width: 82ch; }
+  .hint strong { color: var(--t1); }
+  .hint a { color: var(--verde); text-decoration: none; }
+  .hint a:hover { text-decoration: underline; }
+  .hint-proponer { margin-top: 0.85rem; margin-bottom: 0; }
+
+  .form-row { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; margin-top: 0.6rem; }
+  #test-url {
+    flex: 1; min-width: 280px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 5px;
+    padding: 0.5rem 0.7rem;
+    color: var(--t1);
+    font-family: var(--mono); font-size: 12px;
+  }
+  #test-url:focus { outline: none; border-color: var(--verde); }
+  #test-tipo {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 5px;
+    padding: 0.45rem 0.6rem;
+    color: var(--t1);
+    font-family: var(--sans); font-size: 12.5px;
+  }
+  #test-tipo:focus { outline: none; border-color: var(--verde); }
+  .btn-primary {
+    background: var(--verde); color: #06121a; border: none;
+    padding: 0.5rem 1rem; border-radius: 6px;
+    font-family: var(--sans); font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .btn-primary:hover { background: #5ce29c; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .test-resultado {
+    margin-top: 0.85rem;
+    padding: 0.85rem 1rem;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-left: 3px solid var(--border2);
+    border-radius: var(--r);
+    font-size: 12.5px; color: var(--t2); line-height: 1.65;
+  }
+  .test-resultado.t-ok { border-left-color: var(--verde); }
+  .test-resultado.t-warn { border-left-color: #ef9a3d; }
+  .test-resultado.t-down { border-left-color: #e63946; }
+  .test-resultado .t-titulo { font-weight: 600; font-size: 13.5px; color: var(--t1); }
+  .test-resultado .t-meta { font-family: var(--mono); font-size: 11px; color: var(--t3); margin-top: 0.3rem; }
+  .test-resultado a { color: var(--verde); text-decoration: none; }
+  .test-resultado a:hover { text-decoration: underline; }
+
+  .footer-attr {
+    margin-top: 2rem; padding: 0.85rem 1rem;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r);
+    color: var(--t3); font-size: 11.5px; line-height: 1.7;
+  }
+  .footer-attr strong { color: var(--t2); }
+</style>
+
+<script is:inline>
+  (() => {
+    const $ = (id) => document.getElementById(id);
+    const urlInput = $('test-url');
+    const tipoSel = $('test-tipo');
+    const btn = $('btn-testear');
+    const out = $('test-resultado');
+
+    const TIMEOUT_MS = 12000;
+
+    function escapar(s) {
+      return String(s).replace(/[&<>"']/g, (m) =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])
+      );
+    }
+
+    function conParams(url, params) {
+      return url + (url.includes('?') ? '&' : '?') + params;
+    }
+
+    function detectarTipo(url) {
+      const u = url.toLowerCase();
+      if (/wmsserver|service=wms/.test(u)) return 'wms';
+      if (/wfsserver|service=wfs/.test(u)) return 'wfs';
+      if (/\/rest\/services\//.test(u) || /(feature|map|image)server/.test(u)) return 'arcgis';
+      if (u.includes('wfs')) return 'wfs';
+      if (u.includes('wms')) return 'wms';
+      if (u.includes('geojson') || u.includes('/geoservicios/')) return 'geojson';
+      return 'json';
+    }
+
+    async function fetchTimeout(url) {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+      try {
+        return await fetch(url, { signal: ctrl.signal });
+      } finally {
+        clearTimeout(t);
+      }
+    }
+
+    async function checkArcgis(url) {
+      const r = await fetchTimeout(conParams(url, 'f=json'));
+      if (!r.ok) return { estado: 'down', detalle: 'HTTP ' + r.status };
+      let meta;
+      try { meta = JSON.parse(await r.text()); }
+      catch { return { estado: 'warn', detalle: 'Responde pero no entrega JSON (¿portal HTML?)' }; }
+      if (meta.error) return { estado: 'down', detalle: 'Error ArcGIS: ' + (meta.error.message || meta.error.code) };
+      const res = { estado: 'ok', detalle: 'Servicio operativo' };
+      if (/\/\d+$/.test(url)) {
+        const q = await fetchTimeout(conParams(url + '/query', 'where=1%3D1&returnCountOnly=true&f=json'));
+        try {
+          const data = JSON.parse(await q.text());
+          if (data.error) return { estado: 'warn', detalle: 'Metadata OK pero query falla: ' + (data.error.message || data.error.code) };
+          if (typeof data.count === 'number') {
+            res.registros = data.count;
+            res.detalle = 'Entrega datos';
+          }
+        } catch {
+          return { estado: 'warn', detalle: 'Metadata OK pero query no entrega JSON' };
+        }
+      } else {
+        const n = (meta.layers?.length ?? 0) + (meta.services?.length ?? 0) + (meta.folders?.length ?? 0);
+        if (n === 0) return { estado: 'warn', detalle: 'Responde pero sin capas ni servicios' };
+        if (meta.layers?.length) res.capas = meta.layers.length;
+      }
+      return res;
+    }
+
+    async function checkOgc(url, servicio) {
+      const r = await fetchTimeout(conParams(url, 'SERVICE=' + servicio + '&REQUEST=GetCapabilities'));
+      if (!r.ok) return { estado: 'down', detalle: 'HTTP ' + r.status };
+      const texto = await r.text();
+      if (/ServiceException/i.test(texto)) return { estado: 'down', detalle: 'El servidor devuelve ServiceExceptionReport' };
+      const esperado = servicio === 'WMS' ? /WMS_Capabilities|WMT_MS_Capabilities/i : /WFS_Capabilities/i;
+      if (!esperado.test(texto)) return { estado: 'warn', detalle: 'Responde pero no entrega capabilities ' + servicio + ' (¿HTML o servicio movido?)' };
+      const capas = (texto.match(servicio === 'WMS' ? /<Layer/g : /<(?:wfs:)?FeatureType/g) || []).length;
+      if (capas === 0) return { estado: 'warn', detalle: 'Capabilities OK pero sin capas publicadas' };
+      return { estado: 'ok', detalle: 'Entrega datos', capas };
+    }
+
+    async function checkJson(url, esperaGeojson) {
+      const r = await fetchTimeout(url);
+      if (!r.ok) return { estado: 'down', detalle: 'HTTP ' + r.status };
+      let data;
+      try { data = JSON.parse(await r.text()); }
+      catch { return { estado: 'warn', detalle: 'Responde pero no entrega JSON válido' }; }
+      if (esperaGeojson) {
+        if (!Array.isArray(data?.features)) return { estado: 'warn', detalle: 'JSON válido pero no es GeoJSON (sin features)' };
+        return { estado: 'ok', detalle: 'Entrega datos', registros: data.features.length };
+      }
+      return { estado: 'ok', detalle: 'Entrega datos' };
+    }
+
+    function render(res, tipo, ms) {
+      const iconos = { ok: '🟢', warn: '🟡', down: '🔴' };
+      const titulos = { ok: 'Operativo — entrega datos', warn: 'Degradado — responde pero con problemas', down: 'Caído — no responde o con error' };
+      const extra = [];
+      if (res.registros != null) extra.push(res.registros.toLocaleString('es-CL') + ' registros');
+      if (res.capas != null) extra.push(res.capas + ' capas');
+      extra.push(ms + ' ms');
+      extra.push(tipo.toUpperCase());
+      out.className = 'test-resultado t-' + res.estado;
+      out.innerHTML =
+        '<div class="t-titulo">' + iconos[res.estado] + ' ' + escapar(titulos[res.estado]) + '</div>' +
+        '<div>' + escapar(res.detalle) + '</div>' +
+        '<div class="t-meta">' + escapar(extra.join(' · ')) + '</div>';
+      out.style.display = 'block';
+    }
+
+    function renderCors(url, tipo) {
+      const enlace = tipo === 'wms' || tipo === 'wfs'
+        ? conParams(url, 'SERVICE=' + tipo.toUpperCase() + '&REQUEST=GetCapabilities')
+        : tipo === 'arcgis' ? conParams(url, 'f=json') : url;
+      out.className = 'test-resultado t-warn';
+      out.innerHTML =
+        '<div class="t-titulo">🟡 No se pudo verificar desde el navegador</div>' +
+        '<div>El servidor no permite consultas desde otras páginas (CORS) o hubo un problema de red. ' +
+        'Esto <strong>no significa que el servicio esté caído</strong> — puede funcionar perfectamente en QGIS o ArcGIS. ' +
+        'Verifícalo abriendo la respuesta directamente: ' +
+        '<a href="' + escapar(enlace) + '" target="_blank" rel="noopener">abrir en pestaña nueva ↗</a></div>';
+      out.style.display = 'block';
+    }
+
+    btn.addEventListener('click', async () => {
+      const url = urlInput.value.trim().replace(/\?+$/, '');
+      if (!/^https?:\/\//i.test(url)) {
+        out.className = 'test-resultado t-down';
+        out.innerHTML = '<div class="t-titulo">Ingresa una URL válida (debe empezar con http:// o https://)</div>';
+        out.style.display = 'block';
+        return;
+      }
+      const tipo = tipoSel.value === 'auto' ? detectarTipo(url) : tipoSel.value;
+      btn.disabled = true;
+      btn.textContent = '⏳ Probando…';
+      const t0 = performance.now();
+      try {
+        let res;
+        if (tipo === 'arcgis') res = await checkArcgis(url);
+        else if (tipo === 'wms') res = await checkOgc(url, 'WMS');
+        else if (tipo === 'wfs') res = await checkOgc(url, 'WFS');
+        else res = await checkJson(url, tipo === 'geojson');
+        render(res, tipo, Math.round(performance.now() - t0));
+      } catch (e) {
+        if (e.name === 'AbortError') {
+          render({ estado: 'down', detalle: 'Timeout: sin respuesta en ' + TIMEOUT_MS / 1000 + ' segundos' }, tipo, TIMEOUT_MS);
+        } else {
+          renderCors(url, tipo);
+        }
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '▶ Probar';
+      }
+    });
+
+    urlInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') btn.click();
+    });
+  })();
+</script>

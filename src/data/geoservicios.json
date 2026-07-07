@@ -1,0 +1,149 @@
+{
+  "$comentario": "Catálogo de geoservicios públicos chilenos monitoreados. Cada entrada fue verificada manualmente antes de agregarse. tipos: arcgis (REST, con o sin capa /N al final), wms, wfs, geojson, json.",
+  "servicios": [
+    {
+      "id": "sernageomin-concesiones",
+      "institucion": "SERNAGEOMIN",
+      "nombre": "Propiedad minera (concesiones)",
+      "tipo": "arcgis",
+      "url": "https://services1.arcgis.com/OyjvVdFTl5hfSdX3/ArcGIS/rest/services/PM_WGS84/FeatureServer/2",
+      "web": "https://www.sernageomin.cl"
+    },
+    {
+      "id": "sernageomin-relaves",
+      "institucion": "SERNAGEOMIN",
+      "nombre": "Catastro de relaves",
+      "tipo": "arcgis",
+      "url": "https://services1.arcgis.com/OyjvVdFTl5hfSdX3/ArcGIS/rest/services/Relaves/FeatureServer/0",
+      "web": "https://www.sernageomin.cl"
+    },
+    {
+      "id": "sernageomin-instalaciones",
+      "institucion": "SERNAGEOMIN",
+      "nombre": "Instalaciones mineras",
+      "tipo": "arcgis",
+      "url": "https://services1.arcgis.com/OyjvVdFTl5hfSdX3/ArcGIS/rest/services/INSTALACIONES_MINERAS_20251126/FeatureServer/0",
+      "web": "https://www.sernageomin.cl"
+    },
+    {
+      "id": "sernageomin-atlas",
+      "institucion": "SERNAGEOMIN",
+      "nombre": "Atlas minero",
+      "tipo": "arcgis",
+      "url": "https://services1.arcgis.com/OyjvVdFTl5hfSdX3/ArcGIS/rest/services/Atlas_Minero_08092025/FeatureServer/0",
+      "web": "https://www.sernageomin.cl"
+    },
+    {
+      "id": "dga-red-hidrometrica",
+      "institucion": "DGA · MOP",
+      "nombre": "Red hidrométrica nacional",
+      "tipo": "arcgis",
+      "url": "https://rest-sit.mop.gob.cl/arcgis/rest/services/DGA/Red_Hidrometrica/MapServer/0",
+      "web": "https://dga.mop.gob.cl"
+    },
+    {
+      "id": "dga-restriccion",
+      "institucion": "DGA · MOP",
+      "nombre": "Áreas de restricción y zonas de prohibición",
+      "tipo": "arcgis",
+      "url": "https://rest-sit.mop.gob.cl/arcgis/rest/services/DGA/Areas_de_Restriccion_y_Zonas_de_Prohibicion/MapServer/0",
+      "web": "https://dga.mop.gob.cl"
+    },
+    {
+      "id": "dga-escasez",
+      "institucion": "DGA · MOP",
+      "nombre": "Decretos de escasez hídrica",
+      "tipo": "arcgis",
+      "url": "https://rest-sit.mop.gob.cl/arcgis/rest/services/DGA/Decretos_Escasez_Hidrica/MapServer/0",
+      "web": "https://dga.mop.gob.cl"
+    },
+    {
+      "id": "mma-humedales-urbanos",
+      "institucion": "MMA",
+      "nombre": "Humedales urbanos",
+      "tipo": "arcgis",
+      "url": "https://arcgis.mma.gob.cl/server/rest/services/MMA/HUMEDALES_URBANOS/FeatureServer/0",
+      "web": "https://mma.gob.cl"
+    },
+    {
+      "id": "sma-areas-proteccion",
+      "institucion": "SMA",
+      "nombre": "Áreas de protección oficial",
+      "tipo": "arcgis",
+      "url": "https://ideserver.sma.gob.cl/arcgis/rest/services/IDE/Areas_proteccion_oficial2/MapServer/0",
+      "web": "https://portal.sma.gob.cl"
+    },
+    {
+      "id": "subpesca-acuicultura",
+      "institucion": "SUBPESCA",
+      "nombre": "Concesiones de acuicultura",
+      "tipo": "arcgis",
+      "url": "https://geoportal.subpesca.cl/server/rest/services/IDE_PUBLICO/SRMPUB_ACUICULTURA/MapServer/0",
+      "web": "https://www.subpesca.cl"
+    },
+    {
+      "id": "subpesca-amerb",
+      "institucion": "SUBPESCA",
+      "nombre": "Áreas de manejo (AMERB)",
+      "tipo": "arcgis",
+      "url": "https://geoportal.subpesca.cl/server/rest/services/IDE_PUBLICO/SRMPUB_ACUIAMERB/MapServer/0",
+      "web": "https://www.subpesca.cl"
+    },
+    {
+      "id": "minagri-incendios",
+      "institucion": "IDE Minagri · CONAF",
+      "nombre": "Incendios forestales",
+      "tipo": "wms",
+      "url": "https://esri.ciren.cl/server/services/IDEMINAGRI/INCENDIOS/MapServer/WMSServer",
+      "web": "https://ide.minagri.gob.cl"
+    },
+    {
+      "id": "minagri-suelos",
+      "institucion": "IDE Minagri · CIREN",
+      "nombre": "Suelos agrológicos",
+      "tipo": "wms",
+      "url": "https://esri.ciren.cl/server/services/IDEMINAGRI/SUELOS_AGROLOGICOS/MapServer/WMSServer",
+      "web": "https://ide.minagri.gob.cl"
+    },
+    {
+      "id": "minagri-fruticola",
+      "institucion": "IDE Minagri · CIREN",
+      "nombre": "Catastro frutícola",
+      "tipo": "wms",
+      "url": "https://esri.ciren.cl/server/services/IDEMINAGRI/CATASTRO_FRUTICOLA/MapServer/WMSServer",
+      "web": "https://ide.minagri.gob.cl"
+    },
+    {
+      "id": "minagri-propiedades",
+      "institucion": "IDE Minagri · CIREN",
+      "nombre": "Propiedades rurales",
+      "tipo": "wms",
+      "url": "https://esri.ciren.cl/server/services/IDEMINAGRI/PROPIEDADES_RURALES/MapServer/WMSServer",
+      "web": "https://ide.minagri.gob.cl"
+    },
+    {
+      "id": "dmc-ema-resumen",
+      "institucion": "DMC",
+      "nombre": "Resumen diario estaciones EMA",
+      "tipo": "geojson",
+      "url": "https://climatologia.meteochile.gob.cl/application/geoservicios/getEmaResumenDiarioGeo",
+      "web": "https://climatologia.meteochile.gob.cl"
+    },
+    {
+      "id": "dmc-riesgo-incendio",
+      "institucion": "DMC",
+      "nombre": "Riesgo de incendio",
+      "tipo": "geojson",
+      "url": "https://climatologia.meteochile.gob.cl/application/geoservicios/getRiesgoIncendio",
+      "web": "https://climatologia.meteochile.gob.cl"
+    },
+    {
+      "id": "open-meteo",
+      "institucion": "Open-Meteo",
+      "nombre": "API de pronóstico",
+      "tipo": "json",
+      "url": "https://api.open-meteo.com/v1/forecast?latitude=-33.45&longitude=-70.66&current=temperature_2m",
+      "web": "https://open-meteo.com"
+    }
+  ]
+}

@@ -151,6 +151,32 @@ GITHUB_TOKEN=ghp_xxx node scripts/sync-scores.mjs
 
 ---
 
+## Monitor de geoservicios — cómo funciona
+
+`/herramientas/monitor-geoservicios` muestra un semáforo del estado de los
+geoservicios públicos chilenos (WMS, WFS, ArcGIS REST, GeoJSON).
+
+- **Catálogo**: `src/data/geoservicios.json` — cada endpoint fue verificado
+  manualmente antes de agregarse. Para proponer uno nuevo: issue con el
+  título `[Monitor] Agregar geoservicio` (o PR directo al JSON).
+- **Checker**: `scripts/check-geoservicios.mjs` verifica en 3 niveles
+  (¿responde? · ¿habla el protocolo? · ¿entrega datos?) con reintentos, y
+  escribe `src/data/geoservicios-estado.json` (semáforo, latencia, conteo de
+  registros, `lastEditDate` de capas ArcGIS e historial de hasta 30 corridas).
+- **Automatización**: `.github/workflows/check-geoservicios.yml` corre a
+  diario (09:00 UTC). Solo commitea (y redeploya) si algún semáforo cambió o
+  si el estado guardado tiene más de 3 días.
+- La página además incluye un **tester client-side** para probar cualquier
+  endpoint que no esté en el listado, con manejo de CORS.
+
+Test local:
+
+```bash
+node scripts/check-geoservicios.mjs
+```
+
+---
+
 ## Licencia
 
 MIT — el código.
