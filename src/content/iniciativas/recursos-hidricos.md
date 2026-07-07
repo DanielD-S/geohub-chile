@@ -3,7 +3,6 @@ nombre: "Recursos Hídricos Chile"
 valoracionIssue: 6
 score: 0
 categoria: hidrico
-icono: "💧"
 estado: beta
 estadoTexto: "Vía SEA + DGA"
 descripcion: "Capas de red hidrográfica, cuencas, subcuencas, glaciares y lagos. Esenciales para análisis de disponibilidad hídrica, impacto de proyectos y vulnerabilidad ante sequía. Fuentes: DGA y SEA."

@@ -43,7 +43,7 @@ const fuentes = (await getCollection('fuentes')).sort(
     <div id="iniciativas" style="padding-top:0.5rem">
       <div class="sec-title">
         Iniciativas de la comunidad
-        <span class="sec-sub">ordenadas por valoraciones (👍) · datasets, visores y scripts creados por usuarios</span>
+        <span class="sec-sub">ordenadas por valoraciones en GitHub · datasets, visores y scripts creados por usuarios</span>
       </div>
       <div class="iniciativas-grid" id="grid-iniciativas">
         {iniciativasComunidad.map((ini) => <IniciativaCard iniciativa={ini} />)}

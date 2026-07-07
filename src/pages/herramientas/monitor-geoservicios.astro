@@ -2,6 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
+import Icon from '../../components/Icon.astro';
 import catalogo from '../../data/geoservicios.json';
 import estado from '../../data/geoservicios-estado.json';
 
@@ -56,7 +57,7 @@ function fmtNum(n: number | undefined) {
     </div>
 
     <div class="herr-hdr">
-      <h1>📡 Monitor de geoservicios chilenos</h1>
+      <h1><Icon name="actividad" size={24} /> Monitor de geoservicios chilenos</h1>
       <p>
         Estado de los servicios de mapas públicos que usa la comunidad geoespacial chilena:
         <strong>WMS, WFS, ArcGIS REST y APIs</strong>. Cada servicio se verifica en 3 niveles —
@@ -68,9 +69,9 @@ function fmtNum(n: number | undefined) {
 
     <!-- Resumen -->
     <div class="resumen-bar">
-      <span class="chip chip-ok">🟢 {conteo.ok} operativos</span>
-      <span class="chip chip-warn">🟡 {conteo.warn} degradados</span>
-      <span class="chip chip-down">🔴 {conteo.down} caídos</span>
+      <span class="chip chip-ok"><span class="sem sem-ok"></span> {conteo.ok} operativos</span>
+      <span class="chip chip-warn"><span class="sem sem-warn"></span> {conteo.warn} degradados</span>
+      <span class="chip chip-down"><span class="sem sem-down"></span> {conteo.down} caídos</span>
       <span class="resumen-fecha">Última verificación: {generadoTxt} (hora de Chile)</span>
     </div>
 
@@ -127,7 +128,7 @@ function fmtNum(n: number | undefined) {
 
     <!-- Tester de endpoint propio -->
     <div class="config-card tester">
-      <div class="config-step"><strong>⚡</strong> ¿Tu servicio no está en la lista? Pruébalo aquí</div>
+      <div class="config-step">¿Tu servicio no está en la lista? Pruébalo aquí</div>
       <p class="hint">
         Pega la URL de cualquier servicio <strong>WMS</strong>, <strong>WFS</strong>,
         <strong>ArcGIS REST</strong> (servicio o capa) o <strong>GeoJSON</strong> y lo verificamos
@@ -148,7 +149,7 @@ function fmtNum(n: number | undefined) {
           <option value="geojson">GeoJSON</option>
           <option value="json">API JSON</option>
         </select>
-        <button id="btn-testear" class="btn-primary" type="button">▶ Probar</button>
+        <button id="btn-testear" class="btn-primary" type="button">Probar</button>
       </div>
       <div id="test-resultado" class="test-resultado" style="display:none"></div>
       <p class="hint hint-proponer">
@@ -161,9 +162,11 @@ function fmtNum(n: number | undefined) {
     </div>
 
     <div class="footer-attr">
-      El semáforo se actualiza una vez al día vía GitHub Actions. 🟢 = responde, habla el
-      protocolo y entrega datos · 🟡 = responde pero con contenido inesperado o lento ·
-      🔴 = sin respuesta o con error. <strong>Historial</strong>: últimas 30 verificaciones
+      El semáforo se actualiza una vez al día vía GitHub Actions.
+      <span class="sem sem-ok"></span> = responde, habla el protocolo y entrega datos ·
+      <span class="sem sem-warn"></span> = responde pero con contenido inesperado o lento ·
+      <span class="sem sem-down"></span> = sin respuesta o con error.
+      <strong>Historial</strong>: últimas 30 verificaciones
       registradas (solo se guardan las corridas donde algún estado cambió, más un heartbeat
       cada 3 días). Los servicios pertenecen a sus instituciones publicadoras.
     </div>
@@ -197,6 +200,7 @@ function fmtNum(n: number | undefined) {
     border: 1px solid var(--border);
     background: var(--surface);
     color: var(--t2);
+    display: inline-flex; align-items: center; gap: 6px;
   }
   .chip-ok { border-color: var(--verde-dim); color: var(--verde); }
   .chip-warn { border-color: rgba(239,108,0,0.4); color: #ef9a3d; }
@@ -291,10 +295,6 @@ function fmtNum(n: number | undefined) {
   .test-resultado.t-ok { border-left-color: var(--verde); }
   .test-resultado.t-warn { border-left-color: #ef9a3d; }
   .test-resultado.t-down { border-left-color: #e63946; }
-  .test-resultado .t-titulo { font-weight: 600; font-size: 13.5px; color: var(--t1); }
-  .test-resultado .t-meta { font-family: var(--mono); font-size: 11px; color: var(--t3); margin-top: 0.3rem; }
-  .test-resultado a { color: var(--verde); text-decoration: none; }
-  .test-resultado a:hover { text-decoration: underline; }
 
   .footer-attr {
     margin-top: 2rem; padding: 0.85rem 1rem;
@@ -303,6 +303,22 @@ function fmtNum(n: number | undefined) {
     color: var(--t3); font-size: 11.5px; line-height: 1.7;
   }
   .footer-attr strong { color: var(--t2); }
+</style>
+
+<!-- Global porque el contenido del tester se inyecta con JS y los estilos
+     scoped de Astro no alcanzan a los nodos creados dinámicamente. -->
+<style is:global>
+  #test-resultado .t-titulo { font-weight: 600; font-size: 13.5px; color: var(--t1); }
+  #test-resultado .t-meta { font-family: var(--mono); font-size: 11px; color: var(--t3); margin-top: 0.3rem; }
+  #test-resultado a { color: var(--verde); text-decoration: none; }
+  #test-resultado a:hover { text-decoration: underline; }
+  #test-resultado .t-dot {
+    display: inline-block; width: 10px; height: 10px;
+    border-radius: 50%; margin-right: 6px; vertical-align: -1px;
+  }
+  #test-resultado .t-dot-ok { background: var(--verde); box-shadow: 0 0 6px var(--verde-dim); }
+  #test-resultado .t-dot-warn { background: #ef9a3d; box-shadow: 0 0 6px rgba(239,154,61,0.4); }
+  #test-resultado .t-dot-down { background: #e63946; box-shadow: 0 0 6px rgba(230,57,70,0.4); }
 </style>
 
 <script is:inline>
@@ -400,7 +416,6 @@ function fmtNum(n: number | undefined) {
     }
 
     function render(res, tipo, ms) {
-      const iconos = { ok: '🟢', warn: '🟡', down: '🔴' };
       const titulos = { ok: 'Operativo — entrega datos', warn: 'Degradado — responde pero con problemas', down: 'Caído — no responde o con error' };
       const extra = [];
       if (res.registros != null) extra.push(res.registros.toLocaleString('es-CL') + ' registros');
@@ -409,7 +424,7 @@ function fmtNum(n: number | undefined) {
       extra.push(tipo.toUpperCase());
       out.className = 'test-resultado t-' + res.estado;
       out.innerHTML =
-        '<div class="t-titulo">' + iconos[res.estado] + ' ' + escapar(titulos[res.estado]) + '</div>' +
+        '<div class="t-titulo"><span class="t-dot t-dot-' + res.estado + '"></span>' + escapar(titulos[res.estado]) + '</div>' +
         '<div>' + escapar(res.detalle) + '</div>' +
         '<div class="t-meta">' + escapar(extra.join(' · ')) + '</div>';
       out.style.display = 'block';
@@ -421,7 +436,7 @@ function fmtNum(n: number | undefined) {
         : tipo === 'arcgis' ? conParams(url, 'f=json') : url;
       out.className = 'test-resultado t-warn';
       out.innerHTML =
-        '<div class="t-titulo">🟡 No se pudo verificar desde el navegador</div>' +
+        '<div class="t-titulo"><span class="t-dot t-dot-warn"></span>No se pudo verificar desde el navegador</div>' +
         '<div>El servidor no permite consultas desde otras páginas (CORS) o hubo un problema de red. ' +
         'Esto <strong>no significa que el servicio esté caído</strong> — puede funcionar perfectamente en QGIS o ArcGIS. ' +
         'Verifícalo abriendo la respuesta directamente: ' +
@@ -439,7 +454,7 @@ function fmtNum(n: number | undefined) {
       }
       const tipo = tipoSel.value === 'auto' ? detectarTipo(url) : tipoSel.value;
       btn.disabled = true;
-      btn.textContent = '⏳ Probando…';
+      btn.textContent = 'Probando…';
       const t0 = performance.now();
       try {
         let res;
@@ -456,7 +471,7 @@ function fmtNum(n: number | undefined) {
         }
       } finally {
         btn.disabled = false;
-        btn.textContent = '▶ Probar';
+        btn.textContent = 'Probar';
       }
     });
 

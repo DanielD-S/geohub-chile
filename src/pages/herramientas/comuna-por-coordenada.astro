@@ -2,6 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
+import Icon from '../../components/Icon.astro';
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 ---
@@ -21,7 +22,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     </div>
 
     <div class="herr-hdr">
-      <h1>📍 ¿En qué comuna estoy?</h1>
+      <h1><Icon name="pin" size={24} /> ¿En qué comuna estoy?</h1>
       <p>
         Pega una o varias coordenadas (o sube un <strong>CSV</strong>) y obtén
         <strong>comuna · provincia · región</strong> para cada punto. Usa los
@@ -67,7 +68,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         <label class="dropzone" id="dropzone">
           <input type="file" id="file-input" accept=".csv,.txt,.tsv" />
           <div class="dz-main">
-            <div class="dz-icon">📂</div>
+            <div class="dz-icon"><Icon name="carpeta" size={30} /></div>
             <div class="dz-text">Arrastra un <strong>CSV</strong> o <strong>haz clic para elegir</strong></div>
             <div class="dz-formats">.csv · .tsv · .txt — primera línea = nombres de columna</div>
           </div>
@@ -102,8 +103,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
           </span>
         </div>
         <div class="resumen-actions">
-          <button id="btn-csv" class="btn-tool">⬇ Descargar CSV</button>
-          <button id="btn-copiar" class="btn-tool">📋 Copiar CSV</button>
+          <button id="btn-csv" class="btn-tool"><Icon name="descargar" size={13} /> Descargar CSV</button>
+          <button id="btn-copiar" class="btn-tool"><Icon name="copiar" size={13} /> Copiar CSV</button>
           <button id="btn-limpiar" class="btn-tool btn-tool-ghost">✕ Limpiar</button>
         </div>
       </div>
@@ -232,7 +233,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   }
   .dropzone:hover, .dropzone.drag { border-color: var(--verde); background: var(--verde-glow); }
   .dropzone input { display: none; }
-  .dz-icon { font-size: 2rem; margin-bottom: 0.4rem; }
+  .dz-icon { color: var(--t3); margin-bottom: 0.4rem; }
   .dz-text { font-size: 14px; color: var(--t1); }
   .dz-text strong { color: var(--verde); }
   .dz-formats { font-size: 11.5px; color: var(--t3); margin-top: 0.4rem; font-family: var(--mono); }

@@ -3,7 +3,6 @@ nombre: "Catastro Minero Chile"
 valoracionIssue: 2
 score: 0
 categoria: mineria
-icono: "⛏️"
 estado: activo
 estadoTexto: "Activo — Jun 2026"
 descripcion: "Base de datos de propiedad minera vigente con 195.072 concesiones en GeoJSON. Incluye concesiones, relaves, yacimientos, instalaciones, franjas metalogénicas y datos de litio. Fuente: SERNAGEOMIN."

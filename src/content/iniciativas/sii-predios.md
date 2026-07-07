@@ -4,7 +4,6 @@ valoracionIssue: 7
 score: 0
 tipo: comunidad
 categoria: admin
-icono: "🏠"
 estado: activo
 estadoTexto: "Activo"
 descripcion: "Pipeline que descarga predios catastrales del Servicio de Impuestos Internos (SII) por comuna: vectoriza polígonos desde el WMS público y los cruza con la API tabular del SII. Exporta un GeoPackage con geometría + rol, avalúo (total/afecto/exento), dirección, destino, ubicación urbano/rural, superficies y manzana. Datos referenciales — para efectos legales consultar sii.cl."

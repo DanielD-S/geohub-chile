@@ -1,5 +1,6 @@
 ---
 import ArchivosPanel from './ArchivosPanel.astro';
+import Icon from './Icon.astro';
 import type { CollectionEntry } from 'astro:content';
 
 interface Props {
@@ -154,7 +155,7 @@ const valoracionUrl = data.valoracionIssue
         rel="noopener"
         title="Valorar en GitHub (requiere cuenta)"
       >
-        👍 {data.score > 0 ? data.score : ''}<span class="valorar-label">Valorar</span>
+        <Icon name="pulgar" size={13} /> {data.score > 0 ? data.score : ''}<span class="valorar-label">Valorar</span>
       </a>
       {data.acciones.map((a) => {
         if (a.tipo === 'ver' && hasArchivos) {
