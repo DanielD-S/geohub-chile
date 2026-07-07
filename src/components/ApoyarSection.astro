@@ -1,7 +1,9 @@
 ---
+import Icon from './Icon.astro';
+
 const opciones = [
   {
-    icono: '☕',
+    icono: 'cafe',
     titulo: 'Un café',
     monto: '$2.000 CLP',
     desc: 'Aporte simbólico para mantener el dominio.',
@@ -9,7 +11,7 @@ const opciones = [
     destacado: false,
   },
   {
-    icono: '☕☕',
+    icono: 'cafe',
     titulo: 'Dos cafés',
     monto: '$5.000 CLP',
     desc: 'Cubre un mes de hosting de capas pesadas.',
@@ -17,7 +19,7 @@ const opciones = [
     destacado: true,
   },
   {
-    icono: '✋',
+    icono: 'corazon',
     titulo: 'Monto libre',
     monto: 'Tú decides',
     desc: 'Elige cuánto quieres aportar al proyecto.',
@@ -50,7 +52,7 @@ const opciones = [
         class={`apoyar-card${o.destacado ? ' destacado' : ''}`}
       >
         {o.destacado && <span class="apoyar-badge">Sugerido</span>}
-        <div class="apoyar-icono">{o.icono}</div>
+        <div class="apoyar-icono"><Icon name={o.icono} size={26} /></div>
         <div class="apoyar-titulo">{o.titulo}</div>
         <div class="apoyar-monto">{o.monto}</div>
         <div class="apoyar-desc">{o.desc}</div>
@@ -60,6 +62,6 @@ const opciones = [
   </div>
 
   <div class="apoyar-foot">
-    💚 100% open source · 100% gratis para usar · sin publicidad · sin tracking
+    100% open source · 100% gratis para usar · sin publicidad · sin tracking
   </div>
 </div>
