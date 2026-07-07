@@ -1,0 +1,44 @@
+name: Monitor geoservicios (semáforo)
+
+on:
+  schedule:
+    # 09:00 UTC = 05:00/04:00 Chile. Una vez al día.
+    - cron: '0 9 * * *'
+  workflow_dispatch: # botón "Run workflow" manual desde la UI
+
+permissions:
+  contents: write
+  actions: write # necesario para que `gh workflow run` dispare deploy.yml
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Verificar geoservicios
+        id: check
+        run: node scripts/check-geoservicios.mjs
+
+      # Se commitea solo si algún semáforo cambió o el estado tiene >3 días
+      # (heartbeat), para no generar un commit diario idéntico.
+      - name: Commitear estado si cambió
+        id: commit
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/data/geoservicios-estado.json
+          git commit -m "chore(monitor): actualizar estado de geoservicios"
+          git push
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Disparar redeploy (workflow_dispatch de deploy.yml)
+        if: steps.commit.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run deploy.yml --ref ${{ github.ref_name }}
