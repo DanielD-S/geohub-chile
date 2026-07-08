@@ -91,8 +91,17 @@ const criterios = [
         <a class="btn-primary" href={`${base}/scripts/amc_riesgo_incendio.py`} download>
           <Icon name="descargar" size={14} /> Descargar script (.py)
         </a>
+        <a class="btn-ghost" href={`${base}/scripts/amc_set_prueba.zip`} download>
+          <Icon name="paquete" size={14} /> Set de datos de prueba (.zip)
+        </a>
         <span class="dl-meta">QGIS 3.28+ · MIT · un solo archivo</span>
       </div>
+      <p class="nota-prueba">
+        ¿No tienes capas a mano? El <strong>set de prueba</strong> trae un área sintética
+        (~12×12 km, EPSG:32719) con las 5 capas listas y focos para validación — descárgalo,
+        descomprime y carga cada archivo según el <code>LEEME.txt</code>. Datos ficticios,
+        solo para ver el flujo completo funcionando.
+      </p>
     </div>
 
     <div class="sec-title-mini">Criterios, fuentes y pesos por defecto</div>
@@ -178,7 +187,20 @@ const criterios = [
     cursor: pointer; text-decoration: none; transition: all 0.15s;
   }
   .btn-primary:hover { background: #5ce29c; }
+  .btn-ghost {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--surface2); color: var(--t1); border: 1px solid var(--border);
+    padding: 0.55rem 1.1rem; border-radius: 6px;
+    font-family: var(--sans); font-size: 13px; font-weight: 500;
+    cursor: pointer; text-decoration: none; transition: all 0.15s;
+  }
+  .btn-ghost:hover { border-color: var(--verde-dim); color: var(--verde); background: var(--verde-glow); }
   .dl-meta { font-family: var(--mono); font-size: 10.5px; color: var(--t3); }
+  .nota-prueba {
+    margin-top: 0.85rem; color: var(--t2); font-size: 12px; line-height: 1.6; max-width: 78ch;
+  }
+  .nota-prueba strong { color: var(--t1); }
+  .nota-prueba code { background: var(--surface2); border: 1px solid var(--border); padding: 0 4px; border-radius: 3px; font-family: var(--mono); font-size: 11px; color: var(--verde); }
 
   .sec-title-mini {
     font-family: var(--mono); font-size: 11px;

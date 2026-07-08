@@ -36,6 +36,7 @@ Licencia: MIT
 """
 
 import math
+import unicodedata
 
 import numpy as np
 from osgeo import gdal
@@ -84,6 +85,13 @@ COMBUSTIBLE_DEFAULT = 0.50  # categoría no reconocida → medio, y se reporta
 
 def tr(texto):
     return QCoreApplication.translate("AMCIncendio", texto)
+
+
+def _norm(s):
+    """Minúsculas sin acentos, para comparar categorías con las palabras clave
+    (las categorías de CONAF vienen con tildes: 'Agrícolas', 'Áreas', etc.)."""
+    s = unicodedata.normalize("NFD", str(s).lower())
+    return "".join(c for c in s if unicodedata.category(c) != "Mn")
 
 
 class AmcRiesgoIncendio(QgsProcessingAlgorithm):
@@ -343,12 +351,12 @@ class AmcRiesgoIncendio(QgsProcessingAlgorithm):
                              if f[idx_campo] is not None})
         mapa_scores, sin_match = {}, []
         for cat in categorias:
-            cat_lower = cat.lower()
+            cat_norm = _norm(cat)
             score = COMBUSTIBLE_DEFAULT
             excluida = False
             encontrado = False
             for kw, val in COMBUSTIBLE_KEYWORDS:
-                if kw in cat_lower:
+                if _norm(kw) in cat_norm:
                     encontrado = True
                     if val is None:
                         excluida = True
