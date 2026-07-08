@@ -213,9 +213,15 @@ class AmcRiesgoIncendio(QgsProcessingAlgorithm):
         return xmin, ymin, xmax, ymax, ancho, alto
 
     def _leer(self, ruta):
+        # ReadRaster (bytes crudos) en vez de ReadAsArray para NO depender de
+        # gdal_array, que es un puente compilado contra una versión concreta de
+        # numpy y falla ("numpy.core.multiarray failed to import") cuando el
+        # entorno tiene otro numpy (típico si el usuario instaló numpy 2.x).
         ds = gdal.Open(ruta)
         banda = ds.GetRasterBand(1)
-        arr = banda.ReadAsArray().astype(np.float64)
+        nx, ny = ds.RasterXSize, ds.RasterYSize
+        buf = banda.ReadRaster(0, 0, nx, ny, buf_type=gdal.GDT_Float64)
+        arr = np.frombuffer(buf, dtype=np.float64).reshape(ny, nx).copy()
         nd = banda.GetNoDataValue()
         if nd is not None:
             arr[arr == nd] = np.nan
@@ -285,8 +291,11 @@ class AmcRiesgoIncendio(QgsProcessingAlgorithm):
         ds.SetGeoTransform((self._xmin, self._res, 0, self._ymax, 0, -self._res))
         ds.SetProjection(self._crs.toWkt())
         banda = ds.GetRasterBand(1)
-        salida = np.where(np.isnan(arr), NODATA, arr)
-        banda.WriteArray(salida.astype(np.float32))
+        # WriteRaster con bytes crudos (mismo motivo que _leer: evitar gdal_array)
+        salida = np.ascontiguousarray(np.where(np.isnan(arr), NODATA, arr),
+                                      dtype=np.float32)
+        banda.WriteRaster(0, 0, self._ancho, self._alto, salida.tobytes(),
+                          buf_type=gdal.GDT_Float32)
         banda.SetNoDataValue(NODATA)
         ds.FlushCache()
         ds = None
