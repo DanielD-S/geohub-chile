@@ -21,7 +21,7 @@ const homeHref = (anchor: string) =>
       <div class="logo-text">Geo<span>Hub</span>CL</div>
       <span class="logo-beta" title="En beta — el sitio puede tener cambios">BETA</span>
     </a>
-    <nav class="header-nav">
+    <nav class="header-nav" id="header-nav">
       <a class={`hnav-link${!enHerramientas ? ' active' : ''}`} href={homeHref('#iniciativas')}>Comunidad</a>
       <a class="hnav-link" href={homeHref('#oficiales')}>Oficiales</a>
       <a class={`hnav-link${enHerramientas ? ' active' : ''}`} href={`${base}/herramientas/`}>Herramientas</a>
@@ -29,17 +29,52 @@ const homeHref = (anchor: string) =>
       <a class="hnav-link" href={homeHref('#contribuir')}>Contribuir</a>
       <a class="hnav-link" href={homeHref('#apoyar')}>Apoyar</a>
       <a class="hnav-link" href={homeHref('#acerca')}>Acerca</a>
+      <a class="hnav-link hnav-gh" href={repoUrl} target="_blank" rel="noopener">⬡ GitHub</a>
     </nav>
     <div class="header-right">
       <a class="btn-gh" href={repoUrl} target="_blank" rel="noopener">⬡ GitHub</a>
       {!enHerramientas && (
         <button class="btn-contribuir" data-modal-open>+ Añadir proyecto</button>
       )}
+      <button
+        class="menu-btn"
+        aria-label="Abrir menú"
+        aria-expanded="false"
+        aria-controls="header-nav"
+        data-menu-toggle
+      >
+        <span></span><span></span><span></span>
+      </button>
     </div>
   </div>
 </header>
 
 <script is:inline>
+  // Menú móvil (hamburguesa)
+  (() => {
+    const btn = document.querySelector('[data-menu-toggle]');
+    const nav = document.getElementById('header-nav');
+    if (!btn || !nav) return;
+    const cerrar = () => {
+      nav.classList.remove('open');
+      btn.classList.remove('open');
+      btn.setAttribute('aria-expanded', 'false');
+      btn.setAttribute('aria-label', 'Abrir menú');
+    };
+    btn.addEventListener('click', () => {
+      const abierto = nav.classList.toggle('open');
+      btn.classList.toggle('open', abierto);
+      btn.setAttribute('aria-expanded', String(abierto));
+      btn.setAttribute('aria-label', abierto ? 'Cerrar menú' : 'Abrir menú');
+    });
+    nav.addEventListener('click', (e) => {
+      if (e.target.closest('a')) cerrar();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') cerrar();
+    });
+  })();
+
   // Scroll-spy solo aplica en la home (no en /herramientas/...)
   (() => {
     if (location.pathname.includes('/herramientas')) return;
