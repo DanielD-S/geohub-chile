@@ -53,3 +53,8 @@ Parinacota, Maule y Biobío publican sus PRC solo en el servidor interno de
 MINVU (requiere token) o como documentos en el
 [Portal IPT](https://portalipt.minvu.cl). Para esas regiones, el portal es
 el camino oficial.
+
+**¿Necesitas validar la topología de estos PRC?** La iniciativa comunitaria
+[PRC Extractor](https://github.com/negentropy-technologies/PRC_extractor_notebook)
+descarga este mismo catálogo y detecta solapamientos de zonas, geometrías
+inválidas y duplicados (ver su card en esta sección).
