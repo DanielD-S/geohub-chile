@@ -4,7 +4,7 @@ valoracionIssue: 1
 score: 0
 categoria: ambiental
 estado: activo
-estadoTexto: "Activo — Jun 2026"
+estadoTexto: "Activo — Jul 2026"
 descripcion: "25 capas ambientales y territoriales en GeoJSON. Cubre áreas protegidas, recursos hídricos, ecosistemas, patrimonio cultural, infraestructura y proyectos evaluados ambientalmente. Fuente: SEA."
 tags: "sea ambiental parques glaciares bosque indigena arqueologia salud educacion"
 orden: 20
@@ -18,13 +18,13 @@ capas:
 capasExtra: "+19 capas"
 stats:
   - { label: "capas", valor: "25" }
-  - { label: "archivos", valor: "30" }
+  - { label: "archivos", valor: "29" }
   - { label: "GeoJSON · WGS84" }
 acciones:
   - { tipo: github, texto: "GitHub", url: "https://github.com/DanielD-S/Capas_IDE_CHILE/releases/tag/v1.SEA_archivos" }
   - { tipo: ver, texto: "Ver capas" }
 archivos:
-  release: "v1 · Junio 2026"
+  release: "v1 · actualizado Jul 2026"
   grupos:
     - titulo: "Áreas protegidas y biodiversidad"
       items:
@@ -40,5 +40,6 @@ archivos:
     - titulo: "Infraestructura / Proyectos ambientales"
       items:
         - { nombre: "sea_establecimientos_salud_2026-06-08.geojson", size: "4 MB", url: "https://github.com/DanielD-S/Capas_IDE_CHILE/releases/download/v1.SEA_archivos/sea_establecimientos_salud_2026-06-08.geojson" }
-        - { nombre: "sea_proyectos_rca_vigente_2026-06-08.geojson", size: "217 KB", url: "https://github.com/DanielD-S/Capas_IDE_CHILE/releases/download/v1.SEA_archivos/sea_proyectos_rca_vigente_2026-06-08.geojson" }
+        - { nombre: "sea_proyectos_rca_vigente_puntos_2026-07-09.geojson", size: "1.6 MB", url: "https://github.com/DanielD-S/Capas_IDE_CHILE/releases/download/v1.SEA_archivos/sea_proyectos_rca_vigente_puntos_2026-07-09.geojson" }
+        - { nombre: "sea_proyectos_rca_vigente_areas_influencia_2026-07-09.geojson", size: "7.3 MB", url: "https://github.com/DanielD-S/Capas_IDE_CHILE/releases/download/v1.SEA_archivos/sea_proyectos_rca_vigente_areas_influencia_2026-07-09.geojson" }
 ---
