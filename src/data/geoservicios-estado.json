@@ -1,158 +1,158 @@
 {
-  "generado": "2026-08-21T09:28:44.903Z",
+  "generado": "2026-08-24T09:39:18.648Z",
   "resultados": {
     "sernageomin-concesiones": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "lastEdit": "2026-03-17",
       "registros": 105874,
-      "latenciaMs": 271,
-      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+      "latenciaMs": 336,
+      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
     },
     "sernageomin-relaves": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "lastEdit": "2024-06-18",
       "registros": 765,
-      "latenciaMs": 153,
-      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+      "latenciaMs": 244,
+      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
     },
     "sernageomin-instalaciones": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "lastEdit": "2025-12-19",
       "registros": 28999,
-      "latenciaMs": 165,
-      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+      "latenciaMs": 221,
+      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
     },
     "sernageomin-atlas": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "lastEdit": "2025-12-09",
       "registros": 28228,
-      "latenciaMs": 127,
-      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+      "latenciaMs": 184,
+      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
     },
     "dga-red-hidrometrica": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "registros": 5084,
-      "latenciaMs": 883,
-      "historial": "vvvvvvvvvvvvrvvvvavavvvvvvvv"
+      "latenciaMs": 1094,
+      "historial": "vvvvvvvvvvvvrvvvvavavvvvvvvvv"
     },
     "dga-restriccion": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "registros": 736,
-      "latenciaMs": 409,
-      "historial": "vvvvvvvvvvvvrvvvvvvvvvvvvvvv"
+      "latenciaMs": 499,
+      "historial": "vvvvvvvvvvvvrvvvvvvvvvvvvvvvv"
     },
     "dga-escasez": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "registros": 627,
-      "latenciaMs": 409,
-      "historial": "vvvvvvvvvvvvavvvvrvvvvvvvvvv"
+      "latenciaMs": 500,
+      "historial": "vvvvvvvvvvvvavvvvrvvvvvvvvvvv"
     },
     "mma-humedales-urbanos": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "registros": 305,
-      "latenciaMs": 2106,
-      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+      "latenciaMs": 2068,
+      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
     },
     "sma-areas-proteccion": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "registros": 1097,
-      "latenciaMs": 1067,
-      "historial": "vvrvvvvvvvvvvvvvvvvvvvvvvvvv"
+      "latenciaMs": 1466,
+      "historial": "vvrvvvvvvvvvvvvvvvvvvvvvvvvvv"
     },
     "subpesca-acuicultura": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "registros": 4691,
-      "latenciaMs": 2393,
-      "historial": "vvvvvvvrrrrvvavvvvvvvvvvvvvv"
+      "latenciaMs": 2402,
+      "historial": "vvvvvvvrrrrvvavvvvvvvvvvvvvvv"
     },
     "subpesca-amerb": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "registros": 59,
-      "latenciaMs": 299,
-      "historial": "vvvvvvvrrrrvvvvvvvvvvvvvvvvv"
+      "latenciaMs": 365,
+      "historial": "vvvvvvvrrrrvvvvvvvvvvvvvvvvvv"
     },
     "minagri-incendios": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "capas": 5,
-      "latenciaMs": 853,
-      "historial": "vvvvvvvvvvvvvvvvvvvvvvvrvrvv"
+      "latenciaMs": 869,
+      "historial": "vvvvvvvvvvvvvvvvvvvvvvvrvrvvv"
     },
     "minagri-suelos": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "capas": 15,
-      "latenciaMs": 207,
-      "historial": "vvvvvvvvvvvvvvvvvvvvvvvrvrvv"
+      "latenciaMs": 246,
+      "historial": "vvvvvvvvvvvvvvvvvvvvvvvrvrvvv"
     },
     "minagri-fruticola": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "capas": 70,
-      "latenciaMs": 410,
-      "historial": "vvvvvvvvvvvvvvvvvvvvvvvrvrvv"
+      "latenciaMs": 486,
+      "historial": "vvvvvvvvvvvvvvvvvvvvvvvrvrvvv"
     },
     "minagri-propiedades": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "capas": 15,
-      "latenciaMs": 197,
-      "historial": "vvvvvvvvvvvvvvvvvvvvvvvrvrvv"
+      "latenciaMs": 239,
+      "historial": "vvvvvvvvvvvvvvvvvvvvvvvrvrvvv"
     },
     "minvu-prc-valparaiso": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "lastEdit": "2024-12-27",
       "registros": 49,
-      "latenciaMs": 167,
-      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvv"
+      "latenciaMs": 220,
+      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvv"
     },
     "minvu-limites-urbanos": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "lastEdit": "2022-07-14",
       "registros": 56,
-      "latenciaMs": 115,
-      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvv"
+      "latenciaMs": 223,
+      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvv"
     },
     "minvu-campamentos": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "lastEdit": "2019-09-25",
       "registros": 802,
-      "latenciaMs": 116,
-      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvv"
+      "latenciaMs": 218,
+      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvv"
     },
     "dmc-ema-resumen": {
       "estado": "ok",
       "detalle": "Entrega datos",
-      "registros": 136,
-      "latenciaMs": 1000,
-      "historial": "vvvvrvvrvvvvvvvrvvvvvvvvvvvv"
+      "registros": 137,
+      "latenciaMs": 1310,
+      "historial": "vvvvrvvrvvvvvvvrvvvvvvvvvvvvv"
     },
     "dmc-riesgo-incendio": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "registros": 148,
-      "latenciaMs": 864,
-      "historial": "vvvvrvvrvrvvvvvrvvvvvvvvvvvv"
+      "latenciaMs": 1368,
+      "historial": "vvvvrvvrvrvvvvvrvvvvvvvvvvvvv"
     },
     "open-meteo": {
       "estado": "ok",
       "detalle": "Entrega datos",
-      "latenciaMs": 440,
-      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+      "latenciaMs": 658,
+      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
     }
   }
 }
