@@ -1,158 +1,158 @@
 {
-  "generado": "2026-08-24T09:39:18.648Z",
+  "generado": "2026-08-27T19:22:05.254Z",
   "resultados": {
     "sernageomin-concesiones": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "lastEdit": "2026-03-17",
       "registros": 105874,
-      "latenciaMs": 336,
-      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+      "latenciaMs": 342,
+      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
     },
     "sernageomin-relaves": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "lastEdit": "2024-06-18",
       "registros": 765,
-      "latenciaMs": 244,
-      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+      "latenciaMs": 212,
+      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
     },
     "sernageomin-instalaciones": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "lastEdit": "2025-12-19",
       "registros": 28999,
-      "latenciaMs": 221,
-      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+      "latenciaMs": 235,
+      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
     },
     "sernageomin-atlas": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "lastEdit": "2025-12-09",
       "registros": 28228,
-      "latenciaMs": 184,
-      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+      "latenciaMs": 272,
+      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
     },
     "dga-red-hidrometrica": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "registros": 5084,
-      "latenciaMs": 1094,
-      "historial": "vvvvvvvvvvvvrvvvvavavvvvvvvvv"
+      "latenciaMs": 2454,
+      "historial": "vvvvvvvvvvvvrvvvvavavvvvvvvvvv"
     },
     "dga-restriccion": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "registros": 736,
-      "latenciaMs": 499,
-      "historial": "vvvvvvvvvvvvrvvvvvvvvvvvvvvvv"
+      "latenciaMs": 517,
+      "historial": "vvvvvvvvvvvvrvvvvvvvvvvvvvvvvv"
     },
     "dga-escasez": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "registros": 627,
-      "latenciaMs": 500,
-      "historial": "vvvvvvvvvvvvavvvvrvvvvvvvvvvv"
+      "latenciaMs": 457,
+      "historial": "vvvvvvvvvvvvavvvvrvvvvvvvvvvvv"
     },
     "mma-humedales-urbanos": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "registros": 305,
-      "latenciaMs": 2068,
-      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+      "latenciaMs": 2857,
+      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
     },
     "sma-areas-proteccion": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "registros": 1097,
-      "latenciaMs": 1466,
-      "historial": "vvrvvvvvvvvvvvvvvvvvvvvvvvvvv"
+      "latenciaMs": 1284,
+      "historial": "vvrvvvvvvvvvvvvvvvvvvvvvvvvvvv"
     },
     "subpesca-acuicultura": {
       "estado": "ok",
       "detalle": "Entrega datos",
-      "registros": 4691,
-      "latenciaMs": 2402,
-      "historial": "vvvvvvvrrrrvvavvvvvvvvvvvvvvv"
+      "registros": 4689,
+      "latenciaMs": 2439,
+      "historial": "vvvvvvvrrrrvvavvvvvvvvvvvvvvvv"
     },
     "subpesca-amerb": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "registros": 59,
-      "latenciaMs": 365,
-      "historial": "vvvvvvvrrrrvvvvvvvvvvvvvvvvvv"
+      "latenciaMs": 334,
+      "historial": "vvvvvvvrrrrvvvvvvvvvvvvvvvvvvv"
     },
     "minagri-incendios": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "capas": 5,
       "latenciaMs": 869,
-      "historial": "vvvvvvvvvvvvvvvvvvvvvvvrvrvvv"
+      "historial": "vvvvvvvvvvvvvvvvvvvvvvvrvrvvvv"
     },
     "minagri-suelos": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "capas": 15,
-      "latenciaMs": 246,
-      "historial": "vvvvvvvvvvvvvvvvvvvvvvvrvrvvv"
+      "latenciaMs": 226,
+      "historial": "vvvvvvvvvvvvvvvvvvvvvvvrvrvvvv"
     },
     "minagri-fruticola": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "capas": 70,
-      "latenciaMs": 486,
-      "historial": "vvvvvvvvvvvvvvvvvvvvvvvrvrvvv"
+      "latenciaMs": 444,
+      "historial": "vvvvvvvvvvvvvvvvvvvvvvvrvrvvvv"
     },
     "minagri-propiedades": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "capas": 15,
-      "latenciaMs": 239,
-      "historial": "vvvvvvvvvvvvvvvvvvvvvvvrvrvvv"
+      "latenciaMs": 210,
+      "historial": "vvvvvvvvvvvvvvvvvvvvvvvrvrvvvv"
     },
     "minvu-prc-valparaiso": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "lastEdit": "2024-12-27",
       "registros": 49,
-      "latenciaMs": 220,
-      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+      "latenciaMs": 226,
+      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
     },
     "minvu-limites-urbanos": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "lastEdit": "2022-07-14",
       "registros": 56,
-      "latenciaMs": 223,
-      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+      "latenciaMs": 214,
+      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
     },
     "minvu-campamentos": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "lastEdit": "2019-09-25",
       "registros": 802,
-      "latenciaMs": 218,
-      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+      "latenciaMs": 152,
+      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
     },
     "dmc-ema-resumen": {
       "estado": "ok",
       "detalle": "Entrega datos",
-      "registros": 137,
-      "latenciaMs": 1310,
-      "historial": "vvvvrvvrvvvvvvvrvvvvvvvvvvvvv"
+      "registros": 138,
+      "latenciaMs": 1721,
+      "historial": "vvvvrvvrvvvvvvvrvvvvvvvvvvvvvv"
     },
     "dmc-riesgo-incendio": {
       "estado": "ok",
       "detalle": "Entrega datos",
       "registros": 148,
-      "latenciaMs": 1368,
-      "historial": "vvvvrvvrvrvvvvvrvvvvvvvvvvvvv"
+      "latenciaMs": 1506,
+      "historial": "vvvvrvvrvrvvvvvrvvvvvvvvvvvvvv"
     },
     "open-meteo": {
       "estado": "ok",
       "detalle": "Entrega datos",
-      "latenciaMs": 658,
-      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+      "latenciaMs": 577,
+      "historial": "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
     }
   }
 }
